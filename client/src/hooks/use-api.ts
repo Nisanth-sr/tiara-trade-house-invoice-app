@@ -77,7 +77,11 @@ export function useCreateQuote() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: (data: any) => fetcher<QuoteWithItems>(api.quotes.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: [api.quotes.list.path] }); toast({ title: "Quote created" }); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: [api.quotes.list.path] }); 
+      qc.invalidateQueries({ queryKey: [api.products.list.path] }); 
+      toast({ title: "Quote created" }); 
+    },
     onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
   });
 }
@@ -91,7 +95,11 @@ export function useCreateInvoice() {
   const { toast } = useToast();
   return useMutation({
     mutationFn: (data: any) => fetcher<InvoiceWithItems>(api.invoices.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: [api.invoices.list.path] }); toast({ title: "Invoice created" }); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: [api.invoices.list.path] }); 
+      qc.invalidateQueries({ queryKey: [api.products.list.path] }); 
+      toast({ title: "Invoice created" }); 
+    },
     onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
   });
 }

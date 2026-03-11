@@ -9,7 +9,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Auth mock for the frontend
+  // Auth
   app.post(api.auth.login.path, async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -17,6 +17,7 @@ export async function registerRoutes(
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
+      req.session!.userId = user.id;
       res.json(user);
     } catch (err) {
       res.status(500).json({ message: "Server error" });
@@ -24,11 +25,20 @@ export async function registerRoutes(
   });
 
   app.post(api.auth.logout.path, (req, res) => {
-    res.json({ message: "Logged out" });
+    req.session!.destroy((err) => {
+      res.json({ message: "Logged out" });
+    });
   });
 
   app.get(api.auth.me.path, async (req, res) => {
-    res.status(401).json({ message: "Not logged in" });
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Not logged in" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ message: "Not logged in" });
+    }
+    res.json(user);
   });
 
   // Dashboard Stats
