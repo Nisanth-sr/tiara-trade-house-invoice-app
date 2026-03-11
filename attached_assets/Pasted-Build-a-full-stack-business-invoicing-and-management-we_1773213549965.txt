@@ -1,0 +1,332 @@
+Build a full-stack business invoicing and management web application 
+for TIARA TRADE HOUSE FZ LLC, a UAE-based general trading company 
+dealing in automotive products, lubricants, spare parts, and general 
+trading goods.
+
+---
+
+## 🏢 COMPANY DETAILS (pre-fill in settings/branding)
+- Company Name: TIARA TRADE HOUSE FZ LLC
+- Location: United Arab Emirates
+- Phone/WhatsApp: 054 482 2246
+- Email: contact@tiaratradehouse.com
+- Default Currency: AED (UAE Dirham)
+- VAT Rate: 5% (UAE standard VAT)
+- Default Payment Terms: Net 30
+
+---
+
+## 🔐 AUTHENTICATION & ROLE-BASED ACCESS
+
+### Roles:
+1. **Admin**
+   - Full access to all modules
+   - Can create/edit/delete users
+   - Access to Settings
+   - View all reports and financials
+
+2. **Sales / Account Manager**
+   - Can create/edit Customers, Quotes, Invoices
+   - Can view Products and Payments
+   - Cannot access Settings or User Management
+   - Cannot delete records
+
+### Auth Features:
+- Login page with email + password
+- Role-based sidebar navigation (menu items shown based on role)
+- Session management with logout
+- Seed 2 demo users on first load:
+  - admin@tiaratradehouse.com / admin123 → Admin
+  - sales@tiaratradehouse.com / sales123 → Sales Manager
+
+---
+
+## 📊 MODULE 1: DASHBOARD
+
+Show a real-time overview with:
+
+### KPI Cards (top row):
+- Total Revenue (this month)
+- Total Outstanding (unpaid invoices)
+- Total Expenses (this month)
+- Number of Active Customers
+
+### Charts:
+- Bar chart: Monthly Revenue vs Expenses (last 6 months)
+- Donut chart: Invoice Status Breakdown (Paid / Unpaid / Overdue / Draft)
+- Line chart: Payments received over time (last 30 days)
+
+### Tables:
+- Recent Invoices (last 5) with status badge
+- Top 5 Customers by revenue
+- Overdue Invoices alert list
+
+---
+
+## 👥 MODULE 2: CUSTOMER MANAGEMENT
+
+### Customer List:
+- Table with columns: Name, Company, Phone, Email, Country, Total Billed, Status
+- Search, filter by status (Active/Inactive), sort by name or total billed
+- Pagination
+
+### Add/Edit Customer Form:
+- Contact Name, Company Name
+- Email, Phone, WhatsApp Number
+- Billing Address, Country
+- Currency (default AED)
+- Payment Terms (Net 15 / Net 30 / Net 45 / Due on Receipt)
+- Notes / Internal remarks
+- Status toggle (Active/Inactive)
+
+### Customer Detail Page:
+- Customer info summary
+- Transaction history tab (all invoices, quotes, payments)
+- Outstanding balance display
+
+---
+
+## 📦 MODULE 3: PRODUCT / ITEM CATALOG
+
+### Product List:
+- Table: Item Name, SKU, Category, Unit Price (AED), Tax Rate, Stock Unit, Status
+- Search and filter by category
+- Categories relevant to TIARA: Auto Spare Parts, Lubricants & Engine Oils, 
+  Car Care Products, Vehicle Maintenance, General Trading, Industrial Supplies
+
+### Add/Edit Product Form:
+- Item Name, SKU/Item Code
+- Category (dropdown from above list)
+- Description
+- Unit (Pcs / Ltr / Kg / Box / Set)
+- Unit Price (AED)
+- Tax Rate (0% or 5% VAT)
+- Status (Active/Inactive)
+
+---
+
+## 📋 MODULE 4: QUOTES / ESTIMATES
+
+### Quote List:
+- Table: Quote #, Customer, Date, Expiry Date, Amount, Status
+- Status badges: Draft / Sent / Accepted / Declined / Expired
+- Filter by status, search by customer or quote number
+
+### Create/Edit Quote:
+- Auto-generate Quote Number (QT-0001, QT-0002...)
+- Select Customer (dropdown from Customers)
+- Quote Date, Expiry Date
+- Line Items table:
+  - Select Product (auto-fill price & tax)
+  - Description, Qty, Unit Price, Tax %, Discount %, Line Total
+  - Add/remove rows dynamically
+- Subtotal, Total Discount, Total VAT (5%), Grand Total
+- Notes / Terms & Conditions field
+- Status management: Save as Draft → Mark as Sent → Accept / Decline
+
+### Quote Actions:
+- Convert accepted Quote → Invoice (one click, auto-populate all fields)
+- Download as PDF
+- Send via Email (mailto link)
+
+---
+
+## 🧾 MODULE 5: INVOICES
+
+### Invoice List:
+- Table: Invoice #, Customer, Date, Due Date, Amount, Status
+- Status badges: Draft / Sent / Paid / Partially Paid / Overdue
+- Filter by status, date range, customer
+- Bulk status update
+
+### Create/Edit Invoice:
+- Auto-generate Invoice Number (INV-0001, INV-0002...)
+- Select Customer
+- Invoice Date, Due Date (auto-calculated from payment terms)
+- Reference / PO Number field
+- Line Items (same as Quote — product selector with auto-fill)
+- Subtotal, Discount, VAT (5%), Grand Total
+- Notes / Payment Instructions
+- Status: Draft → Sent → Paid
+
+### Invoice Actions:
+- Download/Print as PDF (well-formatted with the attached company logo,
+  TIARA details, customer details, line items, VAT breakdown)
+- Mark as Paid (full or partial)
+- Send via Email (mailto)
+- View payment history for the invoice
+
+---
+
+## 💰 MODULE 6: PAYMENT TRACKING
+
+### Payments List:
+- Table: Payment #, Invoice #, Customer, Date, Amount, Method, Status
+- Payment Methods: Bank Transfer / Cash / Cheque / Online
+- Search by customer or invoice
+
+### Record Payment:
+- Link to Invoice
+- Payment Date
+- Amount Received
+- Payment Method
+- Reference Number (bank ref / cheque number)
+- Notes
+- Support partial payments (invoice stays "Partially Paid" until fully settled)
+
+### Outstanding Summary:
+- Total outstanding by customer
+- Overdue invoices (past due date and unpaid)
+
+---
+
+## 💸 MODULE 7: EXPENSE TRACKING
+
+### Expense List:
+- Table: Expense #, Date, Category, Vendor/Supplier, Amount (AED), VAT, Status
+- Filter by category, date range
+- Categories: Logistics & Shipping, Procurement / Purchase Cost, 
+  Warehouse & Storage, Office & Admin, Travel & Transport, 
+  Utilities, Marketing, Miscellaneous
+
+### Add/Edit Expense:
+- Expense Date
+- Category (dropdown)
+- Vendor / Supplier Name
+- Description
+- Amount (AED)
+- VAT (5% toggle — is this VAT inclusive?)
+- Payment Method (Cash / Bank / Credit Card)
+- Receipt Number / Reference
+- Notes
+- Status: Pending / Approved / Rejected
+
+### Expense Summary:
+- Monthly expense total
+- Breakdown by category (donut chart on expense list page)
+
+---
+
+## 📈 MODULE 8: REPORTS
+
+### Available Reports:
+1. **Sales Summary** – Total invoiced, collected, outstanding by month
+2. **Invoice Aging Report** – Overdue invoices grouped by 0-30, 31-60, 
+   61-90, 90+ days
+3. **Expense Report** – Expenses by category and month
+4. **Customer Ledger** – All transactions (invoices + payments) for a 
+   selected customer
+5. **VAT Summary** – Total VAT collected on invoices vs VAT on expenses 
+   (simple format for UAE VAT filing)
+
+### Report Features:
+- Date range filter (This Month / Last Month / This Quarter / Custom)
+- Export as CSV / Print view
+- Summary KPI at top of each report
+
+---
+
+## ⚙️ MODULE 9: SETTINGS (Admin Only)
+
+### Organization Profile:
+- Company Name, Logo (use the attached logo image), Address, Phone, 
+  Email, Website
+- Default Currency (AED), VAT Number, Tax Rate
+
+### Invoice & Quote Preferences:
+- Default invoice prefix (INV-), quote prefix (QT-)
+- Default payment terms
+- Default notes / terms & conditions text
+- Next invoice/quote number
+
+### User Management:
+- List of users with role and status
+- Add new user (Name, Email, Role, Active/Inactive)
+- Edit or deactivate users
+
+---
+
+## 🎨 UI/UX DESIGN REQUIREMENTS
+
+### Color Scheme:
+- **Primary / Accent:** Yellow #FFB000 — used for buttons, active sidebar 
+  items, highlights, badges, chart accents
+- **Background / Base:** Black #000000 — used for sidebar background, 
+  header, login page background
+- **Surface / Content Area:** Light Gray #EEEEEE — used for main content 
+  background, cards, table rows
+- **Text on dark:** White #FFFFFF
+- **Text on light:** Black #000000
+- **Borders:** #DDDDDD (subtle)
+
+### Logo:
+- Use the attached logo image throughout the app:
+  - Top-left of the sidebar (white/transparent version if needed)
+  - Login page center
+  - PDF invoice header
+
+### Layout:
+- Sidebar navigation (collapsible), fixed left
+- Top header bar: page title left, user name + role + logout button right
+- Main content area in Light Gray #EEEEEE
+- Cards and tables with white backgrounds and subtle shadows
+
+### Sidebar Design:
+- Background: Black #000000
+- Logo at top
+- Nav items: white text, yellow #FFB000 icon/left-border on active item
+- Hover state: slight yellow tint background
+
+### Login Page:
+- Full black background
+- Centered card in white/light gray
+- Logo prominently at top of card
+- Yellow #FFB000 primary button
+- Demo credentials shown below form
+
+### Buttons:
+- Primary: Yellow #FFB000 background, black text, rounded
+- Secondary: Black background, white text, rounded
+- Danger: Red #EF4444 for delete actions
+
+### Responsive: Works on desktop and tablet
+
+### Sidebar menu items by role:
+- Admin: Dashboard, Customers, Products, Quotes, Invoices, Payments, 
+  Expenses, Reports, Settings
+- Sales Manager: Dashboard, Customers, Products, Quotes, Invoices, Payments
+
+### Status badges with color coding:
+- Draft → Gray
+- Sent → Blue
+- Paid → Green
+- Overdue → Red
+- Pending → Yellow #FFB000
+- Accepted → Green
+- Declined → Red
+
+### UX Details:
+- Empty states with helpful messages when no data exists
+- Confirmation dialogs before delete actions
+- Toast notifications for success/error actions
+- All monetary values displayed in AED format (e.g. AED 1,250.00)
+
+---
+
+## 🗄️ DATA & STATE
+
+- Use in-memory state (React useState/useReducer) with realistic seed data:
+  - 5 sample customers (UAE-based companies — workshops, spare parts dealers)
+  - 10 sample products (auto parts, lubricants, car care, general goods)
+  - 5 sample invoices (mix of Paid, Sent, Overdue statuses)
+  - 3 sample quotes (mix of Draft, Accepted statuses)
+  - 4 sample expenses (logistics, procurement, admin)
+- All forms must have proper validation with inline error messages
+- Toast notifications for all create / update / delete actions
+
+---
+
+Build this as a complete single-page React application with full navigation,
+all modules functional, using Tailwind CSS for styling. Make it
+production-quality and visually impressive with a premium black and yellow
+trading company aesthetic.
