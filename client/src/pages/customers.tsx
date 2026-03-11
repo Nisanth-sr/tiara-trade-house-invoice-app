@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { Layout } from "@/components/layout";
 import { useCustomers, useCreateCustomer, useUpdateCustomer } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
@@ -98,8 +99,29 @@ function CustomerDialog({ open, setOpen, editId, onEditIdChange }: { open: boole
   
   const form = useForm<z.infer<typeof insertCustomerSchema>>({
     resolver: zodResolver(insertCustomerSchema),
-    defaultValues: editingCustomer ? { name: editingCustomer.name, company: editingCustomer.company, email: editingCustomer.email || "", phone: editingCustomer.phone || "", country: editingCustomer.country || "", currency: editingCustomer.currency || "AED", status: editingCustomer.status || "active", address: editingCustomer.address || "", whatsapp: editingCustomer.whatsapp || "", paymentTerms: editingCustomer.paymentTerms || "Net 30", notes: editingCustomer.notes || "" } : { name: "", company: "", email: "", phone: "", country: "", currency: "AED", status: "active", address: "", whatsapp: "", paymentTerms: "Net 30", notes: "" }
+    defaultValues: { name: "", company: "", email: "", phone: "", country: "", currency: "AED", status: "active", address: "", whatsapp: "", paymentTerms: "Net 30", notes: "" }
   });
+
+  // Update form when editing customer changes
+  React.useEffect(() => {
+    if (editingCustomer) {
+      form.reset({
+        name: editingCustomer.name,
+        company: editingCustomer.company,
+        email: editingCustomer.email || "",
+        phone: editingCustomer.phone || "",
+        country: editingCustomer.country || "",
+        currency: editingCustomer.currency || "AED",
+        status: editingCustomer.status || "active",
+        address: editingCustomer.address || "",
+        whatsapp: editingCustomer.whatsapp || "",
+        paymentTerms: editingCustomer.paymentTerms || "Net 30",
+        notes: editingCustomer.notes || ""
+      });
+    } else if (open && !editingCustomer) {
+      form.reset();
+    }
+  }, [editingCustomer, open, form]);
 
   const onSubmit = (data: z.infer<typeof insertCustomerSchema>) => {
     if (editingCustomer) {

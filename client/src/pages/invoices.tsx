@@ -117,21 +117,35 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
       let subtotal = 0;
       let totalVat = 0;
       const items = data.items.map((item: any) => {
-        const lineTotal = item.qty * item.unitPrice;
-        const tax = lineTotal * (item.taxRate / 100);
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        const qty = parseFloat(item.qty) || 0;
+        const taxRate = parseFloat(item.taxRate) || 5;
+        const lineTotal = qty * unitPrice;
+        const tax = lineTotal * (taxRate / 100);
         subtotal += lineTotal;
         totalVat += tax;
-        return { ...item, lineTotal, productId: parseInt(item.productId) || 1, taxRate: item.taxRate || 5 };
+        return { 
+          ...item, 
+          qty,
+          unitPrice: unitPrice.toString(),
+          taxRate: taxRate.toString(),
+          lineTotal: lineTotal.toString(),
+          productId: parseInt(item.productId) || 1
+        };
       });
 
       const payload = {
-        ...data,
+        invoiceNumber: data.invoiceNumber,
         customerId: parseInt(data.customerId),
+        date: data.date,
+        dueDate: data.dueDate,
+        reference: data.reference || "",
         subtotal: subtotal.toString(),
         totalVat: totalVat.toString(),
         grandTotal: (subtotal + totalVat).toString(),
         totalDiscount: "0",
         status: "Draft",
+        notes: data.notes || "",
         items
       };
 

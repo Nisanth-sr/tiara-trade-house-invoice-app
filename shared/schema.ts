@@ -90,7 +90,12 @@ export const quoteItems = pgTable("quote_items", {
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
 });
 
-export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({ id: true });
+export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({ id: true }).extend({
+  unitPrice: z.string(),
+  taxRate: z.string(),
+  discount: z.string().optional(),
+  lineTotal: z.string()
+});
 export type QuoteItem = typeof quoteItems.$inferSelect;
 export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
 
@@ -129,7 +134,12 @@ export const invoiceItems = pgTable("invoice_items", {
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
 });
 
-export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({ id: true });
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({ id: true, invoiceId: true }).extend({
+  unitPrice: z.string(),
+  taxRate: z.string(),
+  discount: z.string().optional(),
+  lineTotal: z.string()
+});
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 

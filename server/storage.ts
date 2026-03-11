@@ -128,9 +128,16 @@ export class DatabaseStorage implements IStorage {
   }
   async createQuote(quote: InsertQuote, items: InsertQuoteItem[]): Promise<Quote & { items: QuoteItem[] }> {
     const [newQuote] = await db.insert(quotes).values(quote).returning();
-    const newItems = await Promise.all(items.map(item => 
-      db.insert(quoteItems).values({ ...item, quoteId: newQuote.id }).returning().then(r => r[0])
-    ));
+    const newItems = await Promise.all(items.map(async (item) => {
+      const [newItem] = await db.insert(quoteItems).values({ ...item, quoteId: newQuote.id }).returning();
+      // Decrement product stock
+      const product = await this.getProduct(item.productId);
+      if (product) {
+        const newStock = Math.max(0, (product.stock || 0) - item.qty);
+        await db.update(products).set({ stock: newStock }).where(eq(products.id, item.productId));
+      }
+      return newItem;
+    }));
     return { ...newQuote, items: newItems };
   }
   async updateQuote(id: number, updates: Partial<InsertQuote>): Promise<Quote | undefined> {
@@ -154,9 +161,16 @@ export class DatabaseStorage implements IStorage {
   }
   async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice & { items: InvoiceItem[] }> {
     const [newInvoice] = await db.insert(invoices).values(invoice).returning();
-    const newItems = await Promise.all(items.map(item => 
-      db.insert(invoiceItems).values({ ...item, invoiceId: newInvoice.id }).returning().then(r => r[0])
-    ));
+    const newItems = await Promise.all(items.map(async (item) => {
+      const [newItem] = await db.insert(invoiceItems).values({ ...item, invoiceId: newInvoice.id }).returning();
+      // Decrement product stock
+      const product = await this.getProduct(item.productId);
+      if (product) {
+        const newStock = Math.max(0, (product.stock || 0) - item.qty);
+        await db.update(products).set({ stock: newStock }).where(eq(products.id, item.productId));
+      }
+      return newItem;
+    }));
     return { ...newInvoice, items: newItems };
   }
   async updateInvoice(id: number, updates: Partial<InsertInvoice>): Promise<Invoice | undefined> {

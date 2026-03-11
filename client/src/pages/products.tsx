@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { Layout } from "@/components/layout";
 import { useProducts, useCreateProduct, useUpdateProduct } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
@@ -92,8 +93,27 @@ function ProductDialog({ open, setOpen, editId, onEditIdChange }: { open: boolea
   
   const form = useForm<z.infer<typeof insertProductSchema>>({
     resolver: zodResolver(insertProductSchema),
-    defaultValues: editingProduct ? { name: editingProduct.name, sku: editingProduct.sku, category: editingProduct.category, unit: editingProduct.unit, price: editingProduct.price.toString(), taxRate: editingProduct.taxRate?.toString() || "5", status: editingProduct.status || "active", description: editingProduct.description || "", stock: editingProduct.stock || 0 } : { name: "", sku: "", category: "", unit: "Pcs", price: "0", taxRate: "5", status: "active", description: "", stock: 0 }
+    defaultValues: { name: "", sku: "", category: "", unit: "Pcs", price: "0", taxRate: "5", status: "active", description: "", stock: 0 }
   });
+
+  // Update form when editing product changes
+  React.useEffect(() => {
+    if (editingProduct) {
+      form.reset({
+        name: editingProduct.name,
+        sku: editingProduct.sku,
+        category: editingProduct.category,
+        unit: editingProduct.unit,
+        price: editingProduct.price.toString(),
+        taxRate: editingProduct.taxRate?.toString() || "5",
+        status: editingProduct.status || "active",
+        description: editingProduct.description || "",
+        stock: editingProduct.stock || 0
+      });
+    } else if (open && !editingProduct) {
+      form.reset();
+    }
+  }, [editingProduct, open, form]);
 
   const onSubmit = (data: z.infer<typeof insertProductSchema>) => {
     if (editingProduct) {
