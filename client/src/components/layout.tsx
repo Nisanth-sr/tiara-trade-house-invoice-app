@@ -17,7 +17,6 @@ const NAV_ITEMS = [
   { icon: Receipt, label: "Invoices", href: "/invoices" },
   { icon: CreditCard, label: "Payments", href: "/payments" },
   { icon: Wallet, label: "Expenses", href: "/expenses" },
-  { icon: BarChart3, label: "Reports", href: "/reports" },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -27,7 +26,6 @@ export function Layout({ children }: { children: ReactNode }) {
   const navLinks = [
     ...NAV_ITEMS,
     ...(user?.role === "admin" ? [
-      { icon: Users, label: "User Management", href: "/users" },
       { icon: Settings, label: "Settings", href: "/settings" }
     ] : [])
   ];

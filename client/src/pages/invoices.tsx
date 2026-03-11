@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useInvoices, useCreateInvoice, useCustomers, useProducts } from "@/hooks/use-api";
+import { useInvoices, useCreateInvoice, useCustomers, useProducts, useQuotes } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +84,7 @@ export default function Invoices() {
 function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean) => void }) {
   const { data: customers = [] } = useCustomers();
   const { data: products = [] } = useProducts();
+  const { data: quotes = [] } = useQuotes();
   const createInvoice = useCreateInvoice();
   const { toast } = useToast();
   
@@ -91,6 +92,7 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
     defaultValues: {
       invoiceNumber: `INV-${format(new Date(), 'yyyyMMdd')}-${Math.floor(Math.random() * 1000)}`,
       customerId: "",
+      quoteId: "",
       date: format(new Date(), 'yyyy-MM-dd'),
       dueDate: format(new Date(Date.now() + 30*24*60*60*1000), 'yyyy-MM-dd'),
       reference: "",
@@ -137,6 +139,7 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
       const payload = {
         invoiceNumber: data.invoiceNumber,
         customerId: parseInt(data.customerId),
+        quoteId: data.quoteId ? parseInt(data.quoteId) : null,
         date: data.date,
         dueDate: data.dueDate,
         reference: data.reference || "",
@@ -178,6 +181,22 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
               <FormField control={form.control} name="invoiceNumber" render={({ field }) => (
                 <FormItem><FormLabel>Invoice Number</FormLabel><FormControl><Input {...field} readOnly className="bg-muted" /></FormControl></FormItem>
               )} />
+              <FormField control={form.control} name="quoteId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quote (Optional)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder="Select quote" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {quotes.map(q => <SelectItem key={q.id} value={q.id.toString()}>{q.quoteNumber}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="customerId" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Customer *</FormLabel>

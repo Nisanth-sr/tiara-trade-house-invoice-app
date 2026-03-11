@@ -106,6 +106,7 @@ export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   invoiceNumber: text("invoice_number").notNull().unique(),
   customerId: integer("customer_id").notNull(),
+  quoteId: integer("quote_id"),
   date: text("date").notNull(),
   dueDate: text("due_date").notNull(),
   reference: text("reference"),

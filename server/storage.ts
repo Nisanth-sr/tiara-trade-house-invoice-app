@@ -161,6 +161,12 @@ export class DatabaseStorage implements IStorage {
   }
   async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice & { items: InvoiceItem[] }> {
     const [newInvoice] = await db.insert(invoices).values(invoice).returning();
+    
+    // Update quote status to "Accepted" if invoice is created from a quote
+    if (newInvoice.quoteId) {
+      await db.update(quotes).set({ status: "Accepted" }).where(eq(quotes.id, newInvoice.quoteId));
+    }
+    
     const newItems = await Promise.all(items.map(async (item) => {
       const [newItem] = await db.insert(invoiceItems).values({ ...item, invoiceId: newInvoice.id }).returning();
       // Decrement product stock
@@ -175,6 +181,13 @@ export class DatabaseStorage implements IStorage {
   }
   async updateInvoice(id: number, updates: Partial<InsertInvoice>): Promise<Invoice | undefined> {
     const [updated] = await db.update(invoices).set(updates).where(eq(invoices.id, id)).returning();
+    
+    // If status changes, update the related quote status
+    if (updated && updated.quoteId && updates.status) {
+      const quoteStatus = updates.status === "Paid" ? "Accepted" : "Accepted";
+      await db.update(quotes).set({ status: quoteStatus }).where(eq(quotes.id, updated.quoteId));
+    }
+    
     return updated;
   }
 
