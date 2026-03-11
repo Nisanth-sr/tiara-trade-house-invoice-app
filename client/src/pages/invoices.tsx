@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useInvoices, useCreateInvoice, useCustomers } from "@/hooks/use-api";
+import { useInvoices, useCreateInvoice, useCustomers, useProducts } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Invoices() {
   const { data: invoices = [], isLoading } = useInvoices();
@@ -82,7 +83,9 @@ export default function Invoices() {
 
 function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean) => void }) {
   const { data: customers = [] } = useCustomers();
+  const { data: products = [] } = useProducts();
   const createInvoice = useCreateInvoice();
+  const { toast } = useToast();
   
   const form = useForm({
     defaultValues: {
@@ -90,7 +93,8 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
       customerId: "",
       date: format(new Date(), 'yyyy-MM-dd'),
       dueDate: format(new Date(Date.now() + 30*24*60*60*1000), 'yyyy-MM-dd'),
-      items: [{ description: "", qty: 1, unitPrice: 0, taxRate: 5 }],
+      reference: "",
+      items: [{ productId: "", description: "", qty: 1, unitPrice: 0, taxRate: 5 }],
       notes: ""
     }
   });
@@ -98,29 +102,49 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" });
 
   const onSubmit = (data: any) => {
-    // calculate totals
-    let subtotal = 0;
-    let totalVat = 0;
-    const items = data.items.map((item: any) => {
-      const lineTotal = item.qty * item.unitPrice;
-      const tax = lineTotal * (item.taxRate / 100);
-      subtotal += lineTotal;
-      totalVat += tax;
-      return { ...item, lineTotal, productId: 1 }; // Mock productId for demo
-    });
+    try {
+      // Validate required fields
+      if (!data.customerId) {
+        toast({ title: "Error", description: "Please select a customer", variant: "destructive" });
+        return;
+      }
+      if (data.items.length === 0 || !data.items.some((item: any) => item.qty > 0)) {
+        toast({ title: "Error", description: "Please add at least one line item", variant: "destructive" });
+        return;
+      }
 
-    const payload = {
-      ...data,
-      customerId: parseInt(data.customerId),
-      subtotal: subtotal.toString(),
-      totalVat: totalVat.toString(),
-      grandTotal: (subtotal + totalVat).toString(),
-      items
-    };
+      // calculate totals
+      let subtotal = 0;
+      let totalVat = 0;
+      const items = data.items.map((item: any) => {
+        const lineTotal = item.qty * item.unitPrice;
+        const tax = lineTotal * (item.taxRate / 100);
+        subtotal += lineTotal;
+        totalVat += tax;
+        return { ...item, lineTotal, productId: parseInt(item.productId) || 1, taxRate: item.taxRate || 5 };
+      });
 
-    createInvoice.mutate(payload, {
-      onSuccess: () => { setOpen(false); form.reset(); }
-    });
+      const payload = {
+        ...data,
+        customerId: parseInt(data.customerId),
+        subtotal: subtotal.toString(),
+        totalVat: totalVat.toString(),
+        grandTotal: (subtotal + totalVat).toString(),
+        totalDiscount: "0",
+        status: "Draft",
+        items
+      };
+
+      createInvoice.mutate(payload, {
+        onSuccess: () => { 
+          setOpen(false); 
+          form.reset(); 
+          toast({ title: "Success", description: "Invoice created successfully" });
+        }
+      });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to create invoice", variant: "destructive" });
+    }
   };
 
   return (
@@ -164,6 +188,10 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
               )} />
             </div>
 
+            <FormField control={form.control} name="reference" render={({ field }) => (
+              <FormItem><FormLabel>Reference / PO Number</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+            )} />
+
             <div className="mt-8 border-t pt-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-lg">Line Items</h3>
@@ -174,8 +202,17 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
 
               {fields.map((field, index) => (
                 <div key={field.id} className="flex items-end gap-3 mb-4 bg-muted/30 p-4 rounded-xl">
-                  <FormField control={form.control} name={`items.${index}.description`} render={({ field: f }) => (
-                    <FormItem className="flex-1"><FormLabel className="text-xs">Description</FormLabel><FormControl><Input {...f} /></FormControl></FormItem>
+                  <FormField control={form.control} name={`items.${index}.productId`} render={({ field: f }) => (
+                    <FormItem className="flex-1"><FormLabel className="text-xs">Product (Available)</FormLabel>
+                      <Select onValueChange={f.onChange} defaultValue={f.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {products.filter(p => (p.stock || 0) > 0).map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name} (Qty: {p.stock})</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name={`items.${index}.qty`} render={({ field: f }) => (
                     <FormItem className="w-20"><FormLabel className="text-xs">Qty</FormLabel><FormControl><Input type="number" {...f} onChange={e => f.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>

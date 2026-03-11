@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useProducts, useCreateProduct } from "@/hooks/use-api";
+import { useProducts, useCreateProduct, useUpdateProduct } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ export default function Products() {
   const { data: products = [], isLoading } = useProducts();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
 
   const filtered = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -38,7 +39,7 @@ export default function Products() {
                 className="pl-9 bg-white border-border"
               />
             </div>
-            <ProductDialog open={open} setOpen={setOpen} />
+            <ProductDialog open={open} setOpen={setOpen} editId={editId} onEditIdChange={setEditId} />
           </div>
         </div>
 
@@ -50,15 +51,16 @@ export default function Products() {
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="text-right">Price (AED)</TableHead>
+                <TableHead className="text-right">Stock</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No products found.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No products found.</TableCell></TableRow>
               ) : (
                 filtered.map((product) => (
                   <TableRow key={product.id} className="hover:bg-muted/30 transition-colors">
@@ -66,9 +68,10 @@ export default function Products() {
                     <TableCell className="font-semibold">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell className="text-right font-medium">{Number(product.price).toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell>
+                    <TableCell className="text-right font-medium">{product.stock || 0}</TableCell>
                     <TableCell><StatusBadge status={product.status!} /></TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">Edit</Button>
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10" onClick={() => { setEditId(product.id); setOpen(true); }}>Edit</Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -81,17 +84,27 @@ export default function Products() {
   );
 }
 
-function ProductDialog({ open, setOpen }: { open: boolean, setOpen: (val: boolean) => void }) {
+function ProductDialog({ open, setOpen, editId, onEditIdChange }: { open: boolean, setOpen: (val: boolean) => void, editId: number | null, onEditIdChange: (id: number | null) => void }) {
+  const { data: products = [] } = useProducts();
   const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const editingProduct = editId ? products.find(p => p.id === editId) : null;
+  
   const form = useForm<z.infer<typeof insertProductSchema>>({
     resolver: zodResolver(insertProductSchema),
-    defaultValues: { name: "", sku: "", category: "", unit: "Pcs", price: "0", taxRate: "5", status: "active" }
+    defaultValues: editingProduct ? { name: editingProduct.name, sku: editingProduct.sku, category: editingProduct.category, unit: editingProduct.unit, price: editingProduct.price.toString(), taxRate: editingProduct.taxRate?.toString() || "5", status: editingProduct.status || "active", description: editingProduct.description || "", stock: editingProduct.stock || 0 } : { name: "", sku: "", category: "", unit: "Pcs", price: "0", taxRate: "5", status: "active", description: "", stock: 0 }
   });
 
   const onSubmit = (data: z.infer<typeof insertProductSchema>) => {
-    createProduct.mutate({ ...data, price: data.price.toString() }, {
-      onSuccess: () => { setOpen(false); form.reset(); }
-    });
+    if (editingProduct) {
+      updateProduct.mutate({ id: editingProduct.id, data: { ...data, price: data.price.toString() } }, {
+        onSuccess: () => { setOpen(false); form.reset(); onEditIdChange(null); }
+      });
+    } else {
+      createProduct.mutate({ ...data, price: data.price.toString() }, {
+        onSuccess: () => { setOpen(false); form.reset(); }
+      });
+    }
   };
 
   return (
@@ -103,7 +116,7 @@ function ProductDialog({ open, setOpen }: { open: boolean, setOpen: (val: boolea
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">Add New Product</DialogTitle>
+          <DialogTitle className="font-display text-xl">{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
@@ -131,9 +144,20 @@ function ProductDialog({ open, setOpen }: { open: boolean, setOpen: (val: boolea
                 <FormItem><FormLabel>Tax Rate (%)</FormLabel><FormControl><Input type="number" step="0.1" {...field} value={field.value || ''} /></FormControl></FormItem>
               )} />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="stock" render={({ field }) => (
+                <FormItem><FormLabel>Stock Availability</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="status" render={({ field }) => (
+                <FormItem><FormLabel>Status</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
+              )} />
+            </div>
+            <FormField control={form.control} name="description" render={({ field }) => (
+              <FormItem><FormLabel>Description</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
+            )} />
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={createProduct.isPending} className="w-full bg-black text-white hover:bg-black/90">
-                {createProduct.isPending ? "Creating..." : "Save Product"}
+              <Button type="submit" disabled={createProduct.isPending || updateProduct.isPending} className="w-full bg-black text-white hover:bg-black/90">
+                {createProduct.isPending || updateProduct.isPending ? "Saving..." : "Save Product"}
               </Button>
             </div>
           </form>

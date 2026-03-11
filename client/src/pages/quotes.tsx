@@ -1,16 +1,21 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useQuotes } from "@/hooks/use-api";
+import { useQuotes, useCreateQuote, useCustomers, useProducts } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Search, Plus, Printer, FileDown } from "lucide-react";
-import { Link } from "wouter";
+import { useForm, useFieldArray } from "react-hook-form";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
 
 export default function Quotes() {
   const { data: quotes = [], isLoading } = useQuotes();
   const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
 
   const filtered = quotes.filter(q => 
     q.quoteNumber.toLowerCase().includes(search.toLowerCase())
@@ -31,10 +36,7 @@ export default function Quotes() {
                 className="pl-9 bg-white border-border"
               />
             </div>
-            {/* Same flow as Invoice, mocking simple add button for UI completeness */}
-            <Button className="bg-primary hover:bg-primary/90 text-black font-semibold shadow-lg shadow-primary/20">
-              <Plus className="w-4 h-4 mr-2" /> Create Quote
-            </Button>
+            <QuoteSheet open={open} setOpen={setOpen} />
           </div>
         </div>
 
@@ -75,5 +77,139 @@ export default function Quotes() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+function QuoteSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean) => void }) {
+  const { data: customers = [] } = useCustomers();
+  const { data: products = [] } = useProducts();
+  const createQuote = useCreateQuote();
+  
+  const form = useForm({
+    defaultValues: {
+      quoteNumber: `QT-${format(new Date(), 'yyyyMMdd')}-${Math.floor(Math.random() * 1000)}`,
+      customerId: "",
+      date: format(new Date(), 'yyyy-MM-dd'),
+      expiryDate: format(new Date(Date.now() + 30*24*60*60*1000), 'yyyy-MM-dd'),
+      items: [{ productId: "", description: "", qty: 1, unitPrice: 0, taxRate: 5 }],
+      notes: ""
+    }
+  });
+
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" });
+
+  const onSubmit = (data: any) => {
+    let subtotal = 0;
+    let totalVat = 0;
+    const items = data.items.map((item: any) => {
+      const lineTotal = item.qty * item.unitPrice;
+      const tax = lineTotal * (item.taxRate / 100);
+      subtotal += lineTotal;
+      totalVat += tax;
+      return { ...item, lineTotal, productId: parseInt(item.productId) || 1 };
+    });
+
+    const payload = {
+      ...data,
+      customerId: parseInt(data.customerId),
+      subtotal: subtotal.toString(),
+      totalVat: totalVat.toString(),
+      grandTotal: (subtotal + totalVat).toString(),
+      items,
+      status: "Draft"
+    };
+
+    createQuote.mutate(payload, {
+      onSuccess: () => { setOpen(false); form.reset(); }
+    });
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button className="bg-primary hover:bg-primary/90 text-black font-semibold shadow-lg shadow-primary/20">
+          <Plus className="w-4 h-4 mr-2" /> Create Quote
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full sm:max-w-[800px] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="font-display text-2xl">New Quote</SheetTitle>
+        </SheetHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="quoteNumber" render={({ field }) => (
+                <FormItem><FormLabel>Quote Number</FormLabel><FormControl><Input {...field} readOnly className="bg-muted" /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="customerId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {customers.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.company}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="date" render={({ field }) => (
+                <FormItem><FormLabel>Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+              )} />
+              <FormField control={form.control} name="expiryDate" render={({ field }) => (
+                <FormItem><FormLabel>Expiry Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+              )} />
+            </div>
+
+            <div className="mt-8 border-t pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg">Line Items</h3>
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: "", description: "", qty: 1, unitPrice: 0, taxRate: 5 })}>
+                  <Plus className="w-4 h-4 mr-2" /> Add Item
+                </Button>
+              </div>
+
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex items-end gap-3 mb-4 bg-muted/30 p-4 rounded-xl">
+                  <FormField control={form.control} name={`items.${index}.productId`} render={({ field: f }) => (
+                    <FormItem className="flex-1"><FormLabel className="text-xs">Product (Available)</FormLabel>
+                      <Select onValueChange={f.onChange} defaultValue={f.value}>
+                        <FormControl>
+                          <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {products.filter(p => (p.stock || 0) > 0).map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name} (Qty: {p.stock})</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name={`items.${index}.qty`} render={({ field: f }) => (
+                    <FormItem className="w-20"><FormLabel className="text-xs">Qty</FormLabel><FormControl><Input type="number" {...f} onChange={e => f.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                  )} />
+                  <FormField control={form.control} name={`items.${index}.unitPrice`} render={({ field: f }) => (
+                    <FormItem className="w-32"><FormLabel className="text-xs">Price (AED)</FormLabel><FormControl><Input type="number" {...f} onChange={e => f.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                  )} />
+                  <Button type="button" variant="ghost" className="text-red-500 mb-0.5" onClick={() => remove(index)}>Remove</Button>
+                </div>
+              ))}
+            </div>
+
+            <FormField control={form.control} name="notes" render={({ field }) => (
+              <FormItem><FormLabel>Notes / Terms</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+            )} />
+
+            <div className="flex justify-end pt-6 pb-12 border-t">
+              <Button type="submit" disabled={createQuote.isPending} className="w-full sm:w-auto px-8 bg-black text-white hover:bg-black/90">
+                {createQuote.isPending ? "Saving..." : "Save Quote"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </SheetContent>
+    </Sheet>
   );
 }

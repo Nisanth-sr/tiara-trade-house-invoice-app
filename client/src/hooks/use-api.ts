@@ -35,6 +35,15 @@ export function useCreateCustomer() {
     onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
   });
 }
+export function useUpdateCustomer() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number, data: Partial<InsertCustomer> }) => fetcher<Customer>(buildUrl(api.customers.update.path, { id }), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [api.customers.list.path] }); toast({ title: "Customer updated" }); },
+    onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
+  });
+}
 
 // Products
 export function useProducts() {
@@ -46,6 +55,15 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: (data: InsertProduct) => fetcher<Product>(api.products.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: [api.products.list.path] }); toast({ title: "Product created" }); },
+    onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
+  });
+}
+export function useUpdateProduct() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number, data: Partial<InsertProduct> }) => fetcher<Product>(buildUrl(api.products.update.path, { id }), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [api.products.list.path] }); toast({ title: "Product updated" }); },
     onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
   });
 }

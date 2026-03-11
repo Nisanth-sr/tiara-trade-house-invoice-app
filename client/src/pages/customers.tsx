@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout";
-import { useCustomers, useCreateCustomer } from "@/hooks/use-api";
+import { useCustomers, useCreateCustomer, useUpdateCustomer } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ export default function Customers() {
   const { data: customers = [], isLoading } = useCustomers();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
 
   const filtered = customers.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -38,7 +39,7 @@ export default function Customers() {
                 className="pl-9 bg-white border-border"
               />
             </div>
-            <CustomerDialog open={open} setOpen={setOpen} />
+            <CustomerDialog open={open} setOpen={setOpen} editId={editId} onEditIdChange={setEditId} />
           </div>
         </div>
 
@@ -76,7 +77,7 @@ export default function Customers() {
                     <TableCell className="text-sm">{customer.country || 'N/A'}</TableCell>
                     <TableCell><StatusBadge status={customer.status!} /></TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">Edit</Button>
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10" onClick={() => { setEditId(customer.id); setOpen(true); }}>Edit</Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -89,17 +90,27 @@ export default function Customers() {
   );
 }
 
-function CustomerDialog({ open, setOpen }: { open: boolean, setOpen: (val: boolean) => void }) {
+function CustomerDialog({ open, setOpen, editId, onEditIdChange }: { open: boolean, setOpen: (val: boolean) => void, editId: number | null, onEditIdChange: (id: number | null) => void }) {
+  const { data: customers = [] } = useCustomers();
   const createCustomer = useCreateCustomer();
+  const updateCustomer = useUpdateCustomer();
+  const editingCustomer = editId ? customers.find(c => c.id === editId) : null;
+  
   const form = useForm<z.infer<typeof insertCustomerSchema>>({
     resolver: zodResolver(insertCustomerSchema),
-    defaultValues: { name: "", company: "", email: "", phone: "", country: "", currency: "AED", status: "active" }
+    defaultValues: editingCustomer ? { name: editingCustomer.name, company: editingCustomer.company, email: editingCustomer.email || "", phone: editingCustomer.phone || "", country: editingCustomer.country || "", currency: editingCustomer.currency || "AED", status: editingCustomer.status || "active", address: editingCustomer.address || "", whatsapp: editingCustomer.whatsapp || "", paymentTerms: editingCustomer.paymentTerms || "Net 30", notes: editingCustomer.notes || "" } : { name: "", company: "", email: "", phone: "", country: "", currency: "AED", status: "active", address: "", whatsapp: "", paymentTerms: "Net 30", notes: "" }
   });
 
   const onSubmit = (data: z.infer<typeof insertCustomerSchema>) => {
-    createCustomer.mutate(data, {
-      onSuccess: () => { setOpen(false); form.reset(); }
-    });
+    if (editingCustomer) {
+      updateCustomer.mutate({ id: editingCustomer.id, data }, {
+        onSuccess: () => { setOpen(false); form.reset(); onEditIdChange(null); }
+      });
+    } else {
+      createCustomer.mutate(data, {
+        onSuccess: () => { setOpen(false); form.reset(); }
+      });
+    }
   };
 
   return (
@@ -111,7 +122,7 @@ function CustomerDialog({ open, setOpen }: { open: boolean, setOpen: (val: boole
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl">Add New Customer</DialogTitle>
+          <DialogTitle className="font-display text-xl">{editingCustomer ? "Edit Customer" : "Add New Customer"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
@@ -142,9 +153,18 @@ function CustomerDialog({ open, setOpen }: { open: boolean, setOpen: (val: boole
                 <FormItem><FormLabel>Currency</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
               )} />
             </div>
+            <FormField control={form.control} name="whatsapp" render={({ field }) => (
+              <FormItem><FormLabel>WhatsApp Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
+            )} />
+            <FormField control={form.control} name="paymentTerms" render={({ field }) => (
+              <FormItem><FormLabel>Payment Terms</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
+            )} />
+            <FormField control={form.control} name="notes" render={({ field }) => (
+              <FormItem><FormLabel>Notes</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
+            )} />
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={createCustomer.isPending} className="w-full bg-black text-white hover:bg-black/90">
-                {createCustomer.isPending ? "Creating..." : "Save Customer"}
+              <Button type="submit" disabled={createCustomer.isPending || updateCustomer.isPending} className="w-full bg-black text-white hover:bg-black/90">
+                {createCustomer.isPending || updateCustomer.isPending ? "Saving..." : "Save Customer"}
               </Button>
             </div>
           </form>

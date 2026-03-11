@@ -164,6 +164,11 @@ export const api = {
       path: '/api/quotes/:id' as const,
       input: createQuoteRequest.partial(),
       responses: { 200: z.any(), 404: errorSchemas.notFound }
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/quotes/:id' as const,
+      responses: { 204: z.void(), 404: errorSchemas.notFound }
     }
   },
   invoices: {
@@ -188,6 +193,11 @@ export const api = {
       path: '/api/invoices/:id' as const,
       input: createInvoiceRequest.partial(),
       responses: { 200: z.any(), 404: errorSchemas.notFound }
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/invoices/:id' as const,
+      responses: { 204: z.void(), 404: errorSchemas.notFound }
     }
   },
   payments: {

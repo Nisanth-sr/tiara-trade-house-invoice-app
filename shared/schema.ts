@@ -49,6 +49,7 @@ export const products = pgTable("products", {
   unit: text("unit").notNull(), // Pcs, Ltr, Kg, Box, Set
   price: numeric("price", { precision: 12, scale: 2 }).notNull(),
   taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).default('5'),
+  stock: integer("stock").default(0),
   status: text("status").default("active"),
   createdAt: timestamp("created_at").defaultNow(),
 });
