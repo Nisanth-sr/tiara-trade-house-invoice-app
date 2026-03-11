@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useInvoices, useCreateInvoice, useCustomers, useProducts, useQuotes } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
@@ -102,6 +102,34 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
   });
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" });
+
+  // Auto-fill form when quote is selected
+  useEffect(() => {
+    const quoteId = form.watch("quoteId");
+    if (quoteId) {
+      const selectedQuote = quotes.find(q => q.id.toString() === quoteId);
+      if (selectedQuote) {
+        // Set customer from quote
+        form.setValue("customerId", selectedQuote.customerId.toString());
+        form.setValue("notes", selectedQuote.notes || "");
+        
+        // Clear existing items and add quote items
+        while (fields.length > 0) {
+          remove(0);
+        }
+        
+        selectedQuote.items.forEach((item) => {
+          append({
+            productId: item.productId.toString(),
+            description: item.description || "",
+            qty: item.qty,
+            unitPrice: parseFloat(item.unitPrice),
+            taxRate: parseFloat(item.taxRate || "5")
+          });
+        });
+      }
+    }
+  }, [form.watch("quoteId"), quotes, form, fields.length, append, remove]);
 
   const onSubmit = (data: any) => {
     try {

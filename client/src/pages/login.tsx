@@ -60,11 +60,6 @@ export default function Login() {
               >
                 {isLoggingIn ? "Authenticating..." : "Sign In"}
               </Button>
-              
-              <div className="text-center mt-4 text-xs text-gray-500 space-x-4">
-                <span>Demo Admin: admin@tiaratradehouse.com</span>
-                <span>Demo Sales: sales@tiaratradehouse.com</span>
-              </div>
             </form>
           </div>
         </div>
