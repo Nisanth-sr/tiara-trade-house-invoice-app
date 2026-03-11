@@ -187,29 +187,43 @@ function QuoteSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean) 
                 </Button>
               </div>
 
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-end gap-3 mb-4 bg-muted/30 p-4 rounded-xl">
-                  <FormField control={form.control} name={`items.${index}.productId`} render={({ field: f }) => (
-                    <FormItem className="flex-1"><FormLabel className="text-xs">Product (Available)</FormLabel>
-                      <Select onValueChange={f.onChange} defaultValue={f.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {products.filter(p => (p.stock || 0) > 0).map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name} (Qty: {p.stock})</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name={`items.${index}.qty`} render={({ field: f }) => (
-                    <FormItem className="w-20"><FormLabel className="text-xs">Qty</FormLabel><FormControl><Input type="number" {...f} onChange={e => f.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
-                  )} />
-                  <FormField control={form.control} name={`items.${index}.unitPrice`} render={({ field: f }) => (
-                    <FormItem className="w-32"><FormLabel className="text-xs">Price (AED)</FormLabel><FormControl><Input type="number" {...f} onChange={e => f.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
-                  )} />
-                  <Button type="button" variant="ghost" className="text-red-500 mb-0.5" onClick={() => remove(index)}>Remove</Button>
-                </div>
-              ))}
+              {fields.map((field, index) => {
+                const selectedProduct = products.find(p => p.id.toString() === form.watch(`items.${index}.productId`));
+                const qty = form.watch(`items.${index}.qty`) || 0;
+                const unitPrice = form.watch(`items.${index}.unitPrice`) || 0;
+                const lineTotal = qty * unitPrice;
+
+                return (
+                  <div key={field.id} className="flex items-end gap-3 mb-4 bg-muted/30 p-4 rounded-xl">
+                    <FormField control={form.control} name={`items.${index}.productId`} render={({ field: f }) => (
+                      <FormItem className="flex-1"><FormLabel className="text-xs">Product (Available)</FormLabel>
+                        <Select onValueChange={(val) => {
+                          f.onChange(val);
+                          const prod = products.find(p => p.id.toString() === val);
+                          if (prod) {
+                            form.setValue(`items.${index}.unitPrice`, parseFloat(prod.price));
+                          }
+                        }} defaultValue={f.value}>
+                          <FormControl>
+                            <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {products.filter(p => (p.stock || 0) > 0).map(p => <SelectItem key={p.id} value={p.id.toString()}>{p.name} (Qty: {p.stock})</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name={`items.${index}.qty`} render={({ field: f }) => (
+                      <FormItem className="w-20"><FormLabel className="text-xs">Qty</FormLabel><FormControl><Input type="number" {...f} onChange={e => f.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                    )} />
+                    <FormField control={form.control} name={`items.${index}.unitPrice`} render={({ field: f }) => (
+                      <FormItem className="w-32"><FormLabel className="text-xs">Price (AED)</FormLabel><FormControl><Input type="number" {...f} onChange={e => f.onChange(parseFloat(e.target.value))} /></FormControl></FormItem>
+                    )} />
+                    <div className="w-32"><FormLabel className="text-xs">Total</FormLabel><div className="font-semibold text-sm">{lineTotal.toFixed(2)}</div></div>
+                    <Button type="button" variant="ghost" className="text-red-500 mb-0.5" onClick={() => remove(index)}>Remove</Button>
+                  </div>
+                );
+              })}
             </div>
 
             <FormField control={form.control} name="notes" render={({ field }) => (

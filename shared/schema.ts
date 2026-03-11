@@ -90,7 +90,7 @@ export const quoteItems = pgTable("quote_items", {
   lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
 });
 
-export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({ id: true }).extend({
+export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({ id: true, quoteId: true }).extend({
   unitPrice: z.string(),
   taxRate: z.string(),
   discount: z.string().optional(),

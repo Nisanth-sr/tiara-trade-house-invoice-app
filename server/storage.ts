@@ -191,6 +191,24 @@ export class DatabaseStorage implements IStorage {
   }
   async createPayment(payment: InsertPayment): Promise<Payment> {
     const [newPayment] = await db.insert(payments).values(payment).returning();
+    
+    // Update invoice status based on total payments
+    const invoice = await this.getInvoice(payment.invoiceId);
+    if (invoice) {
+      const allPayments = await db.select().from(payments).where(eq(payments.invoiceId, payment.invoiceId));
+      const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const invoiceGrandTotal = parseFloat(invoice.grandTotal);
+      
+      let newStatus = "Draft";
+      if (totalPaid >= invoiceGrandTotal) {
+        newStatus = "Paid";
+      } else if (totalPaid > 0) {
+        newStatus = "Partially Paid";
+      }
+      
+      await db.update(invoices).set({ status: newStatus }).where(eq(invoices.id, payment.invoiceId));
+    }
+    
     return newPayment;
   }
 
