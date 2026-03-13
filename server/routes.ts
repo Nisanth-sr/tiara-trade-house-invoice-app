@@ -4,6 +4,11 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
+declare module "express-session" {
+  interface SessionData {
+    userId: number;
+  }
+}
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -280,28 +285,32 @@ export async function registerRoutes(
 }
 
 async function seedDatabase() {
-  const usersCount = await storage.getUsers();
-  if (usersCount.length === 0) {
-    await storage.createUser({ name: "Admin User", email: "admin@tiaratradehouse.com", password: "admin123", role: "admin", status: "active" });
-    await storage.createUser({ name: "Sales Manager", email: "sales@tiaratradehouse.com", password: "sales123", role: "sales", status: "active" });
-  }
+  try {
+    const usersCount = await storage.getUsers();
+    if (usersCount.length === 0) {
+      await storage.createUser({ name: "Admin User", email: "admin@tiaratradehouse.com", password: "admin123", role: "admin", status: "active" });
+      await storage.createUser({ name: "Sales Manager", email: "sales@tiaratradehouse.com", password: "sales123", role: "sales", status: "active" });
+    }
 
-  const customersCount = await storage.getCustomers();
-  if (customersCount.length === 0) {
-    await storage.createCustomer({ name: "Ahmed Al Maktoum", company: "Gulf Auto Spares", email: "ahmed@gulfauto.ae", phone: "0501234567", country: "UAE", currency: "AED", status: "active", address: "Dubai" });
-    await storage.createCustomer({ name: "Sarah Jones", company: "Elite Mechanics", email: "sarah@elite.ae", phone: "0559876543", country: "UAE", currency: "AED", status: "active", address: "Abu Dhabi" });
-  }
+    const customersCount = await storage.getCustomers();
+    if (customersCount.length === 0) {
+      await storage.createCustomer({ name: "Ahmed Al Maktoum", company: "Gulf Auto Spares", email: "ahmed@gulfauto.ae", phone: "0501234567", country: "UAE", currency: "AED", status: "active", address: "Dubai" });
+      await storage.createCustomer({ name: "Sarah Jones", company: "Elite Mechanics", email: "sarah@elite.ae", phone: "0559876543", country: "UAE", currency: "AED", status: "active", address: "Abu Dhabi" });
+    }
 
-  const productsCount = await storage.getProducts();
-  if (productsCount.length === 0) {
-    await storage.createProduct({ name: "Synthetic Engine Oil 5W-40", sku: "LUB-001", category: "Lubricants & Engine Oils", unit: "Ltr", price: "45.00", taxRate: "5", status: "active", description: "High performance synthetic oil", stock: 50 });
-    await storage.createProduct({ name: "Brake Pads - Toyota Camry", sku: "BRK-015", category: "Auto Spare Parts", unit: "Set", price: "120.00", taxRate: "5", status: "active", description: "Ceramic brake pads", stock: 30 });
-    await storage.createProduct({ name: "Heavy Duty Degreaser", sku: "CLN-102", category: "Car Care Products", unit: "Pcs", price: "25.00", taxRate: "5", status: "active", description: "Industrial degreaser spray", stock: 100 });
-  }
+    const productsCount = await storage.getProducts();
+    if (productsCount.length === 0) {
+      await storage.createProduct({ name: "Synthetic Engine Oil 5W-40", sku: "LUB-001", category: "Lubricants & Engine Oils", unit: "Ltr", price: "45.00", taxRate: "5", status: "active", description: "High performance synthetic oil", stock: 50 });
+      await storage.createProduct({ name: "Brake Pads - Toyota Camry", sku: "BRK-015", category: "Auto Spare Parts", unit: "Set", price: "120.00", taxRate: "5", status: "active", description: "Ceramic brake pads", stock: 30 });
+      await storage.createProduct({ name: "Heavy Duty Degreaser", sku: "CLN-102", category: "Car Care Products", unit: "Pcs", price: "25.00", taxRate: "5", status: "active", description: "Industrial degreaser spray", stock: 100 });
+    }
 
-  const expensesCount = await storage.getExpenses();
-  if (expensesCount.length === 0) {
-    await storage.createExpense({ date: new Date().toISOString().split('T')[0], category: "Logistics & Shipping", amount: "500.00", vendor: "FedEx", description: "Monthly shipping bill" });
-    await storage.createExpense({ date: new Date().toISOString().split('T')[0], category: "Office & Admin", amount: "150.00", vendor: "Stationery Mart", description: "Office supplies" });
+    const expensesCount = await storage.getExpenses();
+    if (expensesCount.length === 0) {
+      await storage.createExpense({ date: new Date().toISOString().split('T')[0], category: "Logistics & Shipping", amount: "500.00", vendor: "FedEx", description: "Monthly shipping bill" });
+      await storage.createExpense({ date: new Date().toISOString().split('T')[0], category: "Office & Admin", amount: "150.00", vendor: "Stationery Mart", description: "Office supplies" });
+    }
+  } catch (error) {
+    console.error("Failed to seed database. This is expected if the tables have not been created in Supabase yet:", error);
   }
 }

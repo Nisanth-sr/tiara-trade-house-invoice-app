@@ -1,15 +1,15 @@
 import { z } from 'zod';
 import { 
-  insertUserSchema, users,
-  insertCustomerSchema, customers,
-  insertProductSchema, products,
-  insertQuoteSchema, quotes,
-  insertQuoteItemSchema, quoteItems,
-  insertInvoiceSchema, invoices,
-  insertInvoiceItemSchema, invoiceItems,
-  insertPaymentSchema, payments,
-  insertExpenseSchema, expenses,
-  insertSettingsSchema, settings
+  insertUserSchema, type User,
+  insertCustomerSchema, type Customer,
+  insertProductSchema, type Product,
+  insertQuoteSchema, type Quote,
+  insertQuoteItemSchema, type QuoteItem,
+  insertInvoiceSchema, type Invoice,
+  insertInvoiceItemSchema, type InvoiceItem,
+  insertPaymentSchema, type Payment,
+  insertExpenseSchema, type Expense,
+  insertSettingsSchema, type Settings
 } from './schema';
 
 export const errorSchemas = {
@@ -30,7 +30,7 @@ export const errorSchemas = {
 
 // Authentication requests
 const loginRequest = z.object({ email: z.string().email(), password: z.string() });
-const authResponse = z.custom<typeof users.$inferSelect>();
+const authResponse = z.custom<User>();
 
 // Create schema with nested items
 const createQuoteRequest = insertQuoteSchema.extend({
@@ -84,62 +84,62 @@ export const api = {
     list: {
       method: 'GET' as const,
       path: '/api/users' as const,
-      responses: { 200: z.array(z.custom<typeof users.$inferSelect>()) }
+      responses: { 200: z.array(z.custom<User>()) }
     },
     create: {
       method: 'POST' as const,
       path: '/api/users' as const,
       input: insertUserSchema,
-      responses: { 201: z.custom<typeof users.$inferSelect>(), 400: errorSchemas.validation }
+      responses: { 201: z.custom<User>(), 400: errorSchemas.validation }
     },
     update: {
       method: 'PUT' as const,
       path: '/api/users/:id' as const,
       input: insertUserSchema.partial(),
-      responses: { 200: z.custom<typeof users.$inferSelect>(), 404: errorSchemas.notFound }
+      responses: { 200: z.custom<User>(), 404: errorSchemas.notFound }
     }
   },
   customers: {
     list: {
       method: 'GET' as const,
       path: '/api/customers' as const,
-      responses: { 200: z.array(z.custom<typeof customers.$inferSelect>()) }
+      responses: { 200: z.array(z.custom<Customer>()) }
     },
     get: {
       method: 'GET' as const,
       path: '/api/customers/:id' as const,
-      responses: { 200: z.custom<typeof customers.$inferSelect>(), 404: errorSchemas.notFound }
+      responses: { 200: z.custom<Customer>(), 404: errorSchemas.notFound }
     },
     create: {
       method: 'POST' as const,
       path: '/api/customers' as const,
       input: insertCustomerSchema,
-      responses: { 201: z.custom<typeof customers.$inferSelect>(), 400: errorSchemas.validation }
+      responses: { 201: z.custom<Customer>(), 400: errorSchemas.validation }
     },
     update: {
       method: 'PUT' as const,
       path: '/api/customers/:id' as const,
       input: insertCustomerSchema.partial(),
-      responses: { 200: z.custom<typeof customers.$inferSelect>(), 404: errorSchemas.notFound }
+      responses: { 200: z.custom<Customer>(), 404: errorSchemas.notFound }
     }
   },
   products: {
     list: {
       method: 'GET' as const,
       path: '/api/products' as const,
-      responses: { 200: z.array(z.custom<typeof products.$inferSelect>()) }
+      responses: { 200: z.array(z.custom<Product>()) }
     },
     create: {
       method: 'POST' as const,
       path: '/api/products' as const,
       input: insertProductSchema,
-      responses: { 201: z.custom<typeof products.$inferSelect>(), 400: errorSchemas.validation }
+      responses: { 201: z.custom<Product>(), 400: errorSchemas.validation }
     },
     update: {
       method: 'PUT' as const,
       path: '/api/products/:id' as const,
       input: insertProductSchema.partial(),
-      responses: { 200: z.custom<typeof products.$inferSelect>(), 404: errorSchemas.notFound }
+      responses: { 200: z.custom<Product>(), 404: errorSchemas.notFound }
     }
   },
   quotes: {
@@ -210,39 +210,39 @@ export const api = {
       method: 'POST' as const,
       path: '/api/payments' as const,
       input: insertPaymentSchema,
-      responses: { 201: z.custom<typeof payments.$inferSelect>(), 400: errorSchemas.validation }
+      responses: { 201: z.custom<Payment>(), 400: errorSchemas.validation }
     }
   },
   expenses: {
     list: {
       method: 'GET' as const,
       path: '/api/expenses' as const,
-      responses: { 200: z.array(z.custom<typeof expenses.$inferSelect>()) }
+      responses: { 200: z.array(z.custom<Expense>()) }
     },
     create: {
       method: 'POST' as const,
       path: '/api/expenses' as const,
       input: insertExpenseSchema,
-      responses: { 201: z.custom<typeof expenses.$inferSelect>(), 400: errorSchemas.validation }
+      responses: { 201: z.custom<Expense>(), 400: errorSchemas.validation }
     },
     update: {
       method: 'PUT' as const,
       path: '/api/expenses/:id' as const,
       input: insertExpenseSchema.partial(),
-      responses: { 200: z.custom<typeof expenses.$inferSelect>(), 404: errorSchemas.notFound }
+      responses: { 200: z.custom<Expense>(), 404: errorSchemas.notFound }
     }
   },
   settings: {
     get: {
       method: 'GET' as const,
       path: '/api/settings' as const,
-      responses: { 200: z.custom<typeof settings.$inferSelect>() }
+      responses: { 200: z.custom<Settings>() }
     },
     update: {
       method: 'PUT' as const,
       path: '/api/settings' as const,
       input: insertSettingsSchema.partial(),
-      responses: { 200: z.custom<typeof settings.$inferSelect>() }
+      responses: { 200: z.custom<Settings>() }
     }
   }
 };

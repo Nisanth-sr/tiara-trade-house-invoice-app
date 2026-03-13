@@ -12,6 +12,7 @@ import Customers from "./pages/customers";
 import Products from "./pages/products";
 import Quotes from "./pages/quotes";
 import Invoices from "./pages/invoices";
+import Dues from "./pages/dues";
 import Payments from "./pages/payments";
 import Expenses from "./pages/expenses";
 import Reports from "./pages/reports";
@@ -45,6 +46,9 @@ function Router() {
       </Route>
       <Route path="/invoices">
         {() => <ProtectedRoute component={Invoices} />}
+      </Route>
+      <Route path="/dues">
+        {() => <ProtectedRoute component={Dues} />}
       </Route>
       <Route path="/payments">
         {() => <ProtectedRoute component={Payments} />}

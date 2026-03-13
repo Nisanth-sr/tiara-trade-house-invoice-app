@@ -48,16 +48,17 @@ export default function Invoices() {
                 <TableHead>Invoice #</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Due Date</TableHead>
-                <TableHead className="text-right">Amount (AED)</TableHead>
+                <TableHead className="text-right">Total (AED)</TableHead>
+                <TableHead className="text-right">Due (AED)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">Loading...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No invoices found.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No invoices found.</TableCell></TableRow>
               ) : (
                 filtered.map((inv) => (
                   <TableRow key={inv.id} className="hover:bg-muted/30 transition-colors">
@@ -65,6 +66,7 @@ export default function Invoices() {
                     <TableCell>{inv.date}</TableCell>
                     <TableCell>{inv.dueDate}</TableCell>
                     <TableCell className="text-right font-bold">{Number(inv.grandTotal).toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell>
+                    <TableCell className="text-right font-bold text-red-600">{Number(inv.dueAmount || 0).toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell>
                     <TableCell><StatusBadge status={inv.status!} /></TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="ghost" size="icon" title="Print" onClick={() => window.print()}><Printer className="w-4 h-4 text-muted-foreground" /></Button>

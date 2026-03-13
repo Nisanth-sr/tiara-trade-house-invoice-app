@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import logo from "@assets/tth-logo_1773213573131.png";
 import { 
   LayoutDashboard, Users, Package, FileText, 
-  Receipt, CreditCard, Wallet, BarChart3, Settings, LogOut, Menu
+  Receipt, CreditCard, Wallet, BarChart3, Settings, LogOut, Menu, AlertCircle
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { icon: Package, label: "Products", href: "/products" },
   { icon: FileText, label: "Quotes", href: "/quotes" },
   { icon: Receipt, label: "Invoices", href: "/invoices" },
+  { icon: AlertCircle, label: "Payment Dues", href: "/dues" },
   { icon: CreditCard, label: "Payments", href: "/payments" },
   { icon: Wallet, label: "Expenses", href: "/expenses" },
 ];

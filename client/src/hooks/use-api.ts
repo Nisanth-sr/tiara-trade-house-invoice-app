@@ -5,12 +5,15 @@ import type {
   Product, InsertProduct, 
   User, InsertUser,
   QuoteWithItems, InsertQuote,
-  InvoiceWithItems, InsertInvoice,
+  Invoice, InvoiceWithItems, InsertInvoice,
   Payment, InsertPayment,
   Expense, InsertExpense,
   Settings, InsertSettings
 } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+
+export type InvoiceWithDue = InvoiceWithItems & { paidAmount: number, dueAmount: number };
+export type InvoiceListWithDue = Invoice & { customer: Customer, paidAmount: number, dueAmount: number };
 
 // Fetch Helper
 async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
@@ -88,13 +91,13 @@ export function useCreateQuote() {
 
 // Invoices
 export function useInvoices() {
-  return useQuery({ queryKey: [api.invoices.list.path], queryFn: () => fetcher<InvoiceWithItems[]>(api.invoices.list.path) });
+  return useQuery({ queryKey: [api.invoices.list.path], queryFn: () => fetcher<InvoiceListWithDue[]>(api.invoices.list.path) });
 }
 export function useCreateInvoice() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (data: any) => fetcher<InvoiceWithItems>(api.invoices.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
+    mutationFn: (data: any) => fetcher<InvoiceWithDue>(api.invoices.create.path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
     onSuccess: () => { 
       qc.invalidateQueries({ queryKey: [api.invoices.list.path] }); 
       qc.invalidateQueries({ queryKey: [api.products.list.path] }); 

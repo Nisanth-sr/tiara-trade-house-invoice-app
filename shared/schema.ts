@@ -1,206 +1,191 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric, date, uuid, varchar } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // --- USERS ---
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  role: text("role").notNull().default("sales"), // 'admin' or 'sales'
-  status: text("status").notNull().default("active"), // 'active' or 'inactive'
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertUserSchema = z.object({
+  name: z.string(),
+  email: z.string().email().optional(), // email is sometimes optional depending on usage, but let's keep it as was in original Drizzle schema: notNull() -> string()
+  password: z.string(),
+  role: z.string().default("sales"),
+  status: z.string().default("active"),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
-export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = InsertUser & {
+  id: number;
+  createdAt: string | Date | null;
+  email: string; // Ensure email is guaranteed on User type
+};
 
 // --- CUSTOMERS ---
-export const customers = pgTable("customers", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  company: text("company").notNull(),
-  email: text("email"),
-  phone: text("phone"),
-  whatsapp: text("whatsapp"),
-  address: text("address"),
-  country: text("country"),
-  currency: text("currency").default("AED"),
-  paymentTerms: text("payment_terms").default("Net 30"),
-  notes: text("notes"),
-  status: text("status").default("active"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertCustomerSchema = z.object({
+  name: z.string(),
+  company: z.string(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  whatsapp: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
+  currency: z.string().default("AED").nullable().optional(),
+  paymentTerms: z.string().default("Net 30").nullable().optional(),
+  notes: z.string().nullable().optional(),
+  status: z.string().default("active").nullable().optional(),
 });
 
-export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true });
-export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type Customer = InsertCustomer & {
+  id: number;
+  createdAt: string | Date | null;
+};
 
 // --- PRODUCTS ---
-export const products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  sku: text("sku").notNull(),
-  category: text("category").notNull(),
-  description: text("description"),
-  unit: text("unit").notNull(), // Pcs, Ltr, Kg, Box, Set
-  price: numeric("price", { precision: 12, scale: 2 }).notNull(),
-  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).default('5'),
-  stock: integer("stock").default(0),
-  status: text("status").default("active"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertProductSchema = z.object({
+  name: z.string(),
+  sku: z.string(),
+  category: z.string(),
+  description: z.string().nullable().optional(),
+  unit: z.string(), // Pcs, Ltr, Kg, Box, Set
+  price: z.string().or(z.number()),
+  taxRate: z.string().or(z.number()).default('5'),
+  stock: z.number().default(0),
+  status: z.string().default("active").nullable().optional(),
 });
-
-export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
-export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Product = InsertProduct & {
+  id: number;
+  createdAt: string | Date | null;
+};
 
 // --- QUOTES ---
-export const quotes = pgTable("quotes", {
-  id: serial("id").primaryKey(),
-  quoteNumber: text("quote_number").notNull().unique(),
-  customerId: integer("customer_id").notNull(),
-  date: text("date").notNull(), // YYYY-MM-DD
-  expiryDate: text("expiry_date").notNull(), // YYYY-MM-DD
-  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
-  totalDiscount: numeric("total_discount", { precision: 12, scale: 2 }).default('0'),
-  totalVat: numeric("total_vat", { precision: 12, scale: 2 }).notNull(),
-  grandTotal: numeric("grand_total", { precision: 12, scale: 2 }).notNull(),
-  notes: text("notes"),
-  status: text("status").default("Draft"), // Draft, Sent, Accepted, Declined, Expired
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertQuoteSchema = z.object({
+  quoteNumber: z.string(),
+  customerId: z.number(),
+  date: z.string(), // YYYY-MM-DD
+  expiryDate: z.string(), // YYYY-MM-DD
+  subtotal: z.string().or(z.number()),
+  totalDiscount: z.string().or(z.number()).default('0'),
+  totalVat: z.string().or(z.number()),
+  grandTotal: z.string().or(z.number()),
+  notes: z.string().nullable().optional(),
+  status: z.string().default("Draft").nullable().optional(), 
 });
 
-export const insertQuoteSchema = createInsertSchema(quotes).omit({ id: true, createdAt: true });
-export type Quote = typeof quotes.$inferSelect;
 export type InsertQuote = z.infer<typeof insertQuoteSchema>;
+export type Quote = InsertQuote & {
+  id: number;
+  createdAt: string | Date | null;
+};
 
-export const quoteItems = pgTable("quote_items", {
-  id: serial("id").primaryKey(),
-  quoteId: integer("quote_id").notNull(),
-  productId: integer("product_id").notNull(),
-  description: text("description"),
-  qty: integer("qty").notNull(),
-  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
-  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).default('5'),
-  discount: numeric("discount", { precision: 5, scale: 2 }).default('0'),
-  lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
+export const insertQuoteItemSchema = z.object({
+  productId: z.number(),
+  description: z.string().nullable().optional(),
+  qty: z.number(),
+  unitPrice: z.string().or(z.number()),
+  taxRate: z.string().or(z.number()),
+  discount: z.string().or(z.number()).optional(),
+  lineTotal: z.string().or(z.number())
 });
 
-export const insertQuoteItemSchema = createInsertSchema(quoteItems).omit({ id: true, quoteId: true }).extend({
-  unitPrice: z.string(),
-  taxRate: z.string(),
-  discount: z.string().optional(),
-  lineTotal: z.string()
-});
-export type QuoteItem = typeof quoteItems.$inferSelect;
 export type InsertQuoteItem = z.infer<typeof insertQuoteItemSchema>;
-
+export type QuoteItem = InsertQuoteItem & {
+  id: number;
+  quoteId: number;
+};
 export type QuoteWithItems = Quote & { items: QuoteItem[] };
 
+
 // --- INVOICES ---
-export const invoices = pgTable("invoices", {
-  id: serial("id").primaryKey(),
-  invoiceNumber: text("invoice_number").notNull().unique(),
-  customerId: integer("customer_id").notNull(),
-  quoteId: integer("quote_id"),
-  date: text("date").notNull(),
-  dueDate: text("due_date").notNull(),
-  reference: text("reference"),
-  subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull(),
-  totalDiscount: numeric("total_discount", { precision: 12, scale: 2 }).default('0'),
-  totalVat: numeric("total_vat", { precision: 12, scale: 2 }).notNull(),
-  grandTotal: numeric("grand_total", { precision: 12, scale: 2 }).notNull(),
-  notes: text("notes"),
-  status: text("status").default("Draft"), // Draft, Sent, Paid, Partially Paid, Overdue
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertInvoiceSchema = z.object({
+  invoiceNumber: z.string(),
+  customerId: z.number(),
+  quoteId: z.number().nullable().optional(),
+  date: z.string(),
+  dueDate: z.string(),
+  reference: z.string().nullable().optional(),
+  subtotal: z.string().or(z.number()),
+  totalDiscount: z.string().or(z.number()).default('0'),
+  totalVat: z.string().or(z.number()),
+  grandTotal: z.string().or(z.number()),
+  notes: z.string().nullable().optional(),
+  status: z.string().default("Draft").nullable().optional(), // Draft, Sent, Paid, Partially Paid, Overdue
 });
 
-export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true });
-export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = InsertInvoice & {
+  id: number;
+  createdAt: string | Date | null;
+};
 
-export const invoiceItems = pgTable("invoice_items", {
-  id: serial("id").primaryKey(),
-  invoiceId: integer("invoice_id").notNull(),
-  productId: integer("product_id").notNull(),
-  description: text("description"),
-  qty: integer("qty").notNull(),
-  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
-  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).default('5'),
-  discount: numeric("discount", { precision: 5, scale: 2 }).default('0'),
-  lineTotal: numeric("line_total", { precision: 12, scale: 2 }).notNull(),
+export const insertInvoiceItemSchema = z.object({
+  productId: z.number(),
+  description: z.string().nullable().optional(),
+  qty: z.number(),
+  unitPrice: z.string().or(z.number()),
+  taxRate: z.string().or(z.number()),
+  discount: z.string().or(z.number()).optional(),
+  lineTotal: z.string().or(z.number())
 });
 
-export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({ id: true, invoiceId: true }).extend({
-  unitPrice: z.string(),
-  taxRate: z.string(),
-  discount: z.string().optional(),
-  lineTotal: z.string()
-});
-export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+export type InvoiceItem = InsertInvoiceItem & {
+  id: number;
+  invoiceId: number;
+};
 
 export type InvoiceWithItems = Invoice & { items: InvoiceItem[] };
 
 // --- PAYMENTS ---
-export const payments = pgTable("payments", {
-  id: serial("id").primaryKey(),
-  invoiceId: integer("invoice_id").notNull(),
-  customerId: integer("customer_id").notNull(),
-  date: text("date").notNull(),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  method: text("method").notNull(), // Bank Transfer, Cash, Cheque, Online
-  reference: text("reference"),
-  notes: text("notes"),
-  status: text("status").default("Completed"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertPaymentSchema = z.object({
+  invoiceId: z.number(),
+  customerId: z.number(),
+  date: z.string(),
+  amount: z.string().or(z.number()),
+  method: z.string(), // Bank Transfer, Cash, Cheque, Online
+  reference: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  status: z.string().default("Completed").nullable().optional(),
 });
-
-export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
-export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = InsertPayment & {
+  id: number;
+  createdAt: string | Date | null;
+};
 
 // --- EXPENSES ---
-export const expenses = pgTable("expenses", {
-  id: serial("id").primaryKey(),
-  date: text("date").notNull(),
-  category: text("category").notNull(),
-  vendor: text("vendor"),
-  description: text("description"),
-  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-  vatIncluded: boolean("vat_included").default(false),
-  paymentMethod: text("payment_method"),
-  reference: text("reference"),
-  notes: text("notes"),
-  status: text("status").default("Approved"), // Pending, Approved, Rejected
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertExpenseSchema = z.object({
+  date: z.string(),
+  category: z.string(),
+  vendor: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  amount: z.string().or(z.number()),
+  vatIncluded: z.boolean().default(false).nullable().optional(),
+  paymentMethod: z.string().nullable().optional(),
+  reference: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  status: z.string().default("Approved").nullable().optional(), // Pending, Approved, Rejected
 });
-
-export const insertExpenseSchema = createInsertSchema(expenses).omit({ id: true, createdAt: true });
-export type Expense = typeof expenses.$inferSelect;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type Expense = InsertExpense & {
+  id: number;
+  createdAt: string | Date | null;
+};
 
 // --- SETTINGS ---
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  companyName: text("company_name").default("TIARA TRADE HOUSE FZ LLC"),
-  address: text("address").default("United Arab Emirates"),
-  phone: text("phone").default("054 482 2246"),
-  email: text("email").default("contact@tiaratradehouse.com"),
-  website: text("website"),
-  defaultCurrency: text("default_currency").default("AED"),
-  vatNumber: text("vat_number"),
-  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).default('5'),
-  invoicePrefix: text("invoice_prefix").default("INV-"),
-  quotePrefix: text("quote_prefix").default("QT-"),
-  defaultPaymentTerms: text("default_payment_terms").default("Net 30"),
-  defaultNotes: text("default_notes"),
+export const insertSettingsSchema = z.object({
+  companyName: z.string().default("TIARA TRADE HOUSE FZ LLC").nullable().optional(),
+  address: z.string().default("United Arab Emirates").nullable().optional(),
+  phone: z.string().default("054 482 2246").nullable().optional(),
+  email: z.string().default("contact@tiaratradehouse.com").nullable().optional(),
+  website: z.string().nullable().optional(),
+  defaultCurrency: z.string().default("AED").nullable().optional(),
+  vatNumber: z.string().nullable().optional(),
+  taxRate: z.string().or(z.number()).default('5').nullable().optional(),
+  invoicePrefix: z.string().default("INV-").nullable().optional(),
+  quotePrefix: z.string().default("QT-").nullable().optional(),
+  defaultPaymentTerms: z.string().default("Net 30").nullable().optional(),
+  defaultNotes: z.string().nullable().optional(),
 });
 
-export const insertSettingsSchema = createInsertSchema(settings).omit({ id: true });
-export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Settings = InsertSettings & {
+  id: number;
+};
