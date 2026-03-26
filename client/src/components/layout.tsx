@@ -65,16 +65,16 @@ export function Layout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden print:bg-white print:h-auto print:min-h-0 print:overflow-visible">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-72 flex-col h-full shadow-2xl z-10">
+      <aside className="hidden lg:flex w-72 flex-col h-full shadow-2xl z-10 print:hidden">
         <SidebarContent />
       </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile Header */}
-        <header className="lg:hidden bg-[#000000] border-b border-white/10 p-4 flex items-center justify-between">
+        <header className="lg:hidden bg-[#000000] border-b border-white/10 p-4 flex items-center justify-between print:hidden">
           <img src={logo} alt="TTH" className="h-8 object-contain" />
           <Sheet>
             <SheetTrigger asChild>
@@ -89,8 +89,8 @@ export function Layout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-7xl mx-auto animate-in">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 print:overflow-visible print:p-4 print:bg-white">
+          <div className="max-w-7xl mx-auto animate-in print:max-w-none">
             {children}
           </div>
         </main>

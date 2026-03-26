@@ -173,7 +173,8 @@ export async function registerRoutes(
   app.get(api.quotes.get.path, async (req, res) => {
     const quote = await storage.getQuote(Number(req.params.id));
     if (!quote) return res.status(404).json({ message: "Not found" });
-    res.json(quote);
+    const settings = await storage.getSettings();
+    res.json({ ...quote, settings });
   });
   app.post(api.quotes.create.path, async (req, res) => {
     try {
@@ -202,7 +203,8 @@ export async function registerRoutes(
   app.get(api.invoices.get.path, async (req, res) => {
     const invoice = await storage.getInvoice(Number(req.params.id));
     if (!invoice) return res.status(404).json({ message: "Not found" });
-    res.json(invoice);
+    const settings = await storage.getSettings();
+    res.json({ ...invoice, settings });
   });
   app.post(api.invoices.create.path, async (req, res) => {
     try {

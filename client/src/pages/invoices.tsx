@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Search, FileDown, Printer } from "lucide-react";
+import { Plus, Search, Eye } from "lucide-react";
+import { Link } from "wouter";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,9 +69,12 @@ export default function Invoices() {
                     <TableCell className="text-right font-bold">{Number(inv.grandTotal).toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell>
                     <TableCell className="text-right font-bold text-red-600">{Number(inv.dueAmount || 0).toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell>
                     <TableCell><StatusBadge status={inv.status!} /></TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="icon" title="Print" onClick={() => window.print()}><Printer className="w-4 h-4 text-muted-foreground" /></Button>
-                      <Button variant="ghost" size="icon" title="Download PDF"><FileDown className="w-4 h-4 text-muted-foreground" /></Button>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" title="View invoice" asChild>
+                        <Link href={`/invoices/${inv.id}`}>
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

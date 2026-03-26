@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Search, Plus, Printer, FileDown } from "lucide-react";
+import { Search, Plus, Eye } from "lucide-react";
+import { Link } from "wouter";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -65,9 +66,12 @@ export default function Quotes() {
                     <TableCell>{quote.expiryDate}</TableCell>
                     <TableCell className="text-right font-bold">{Number(quote.grandTotal).toLocaleString(undefined, {minimumFractionDigits:2})}</TableCell>
                     <TableCell><StatusBadge status={quote.status!} /></TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="icon"><Printer className="w-4 h-4 text-muted-foreground" /></Button>
-                      <Button variant="ghost" size="icon"><FileDown className="w-4 h-4 text-muted-foreground" /></Button>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" title="View quote" asChild>
+                        <Link href={`/quotes/${quote.id}`}>
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

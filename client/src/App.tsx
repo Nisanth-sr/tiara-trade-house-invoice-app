@@ -11,7 +11,9 @@ import Dashboard from "./pages/dashboard";
 import Customers from "./pages/customers";
 import Products from "./pages/products";
 import Quotes from "./pages/quotes";
+import QuoteDetail from "./pages/quote-detail";
 import Invoices from "./pages/invoices";
+import InvoiceDetail from "./pages/invoice-detail";
 import Dues from "./pages/dues";
 import Payments from "./pages/payments";
 import Expenses from "./pages/expenses";
@@ -41,8 +43,14 @@ function Router() {
       <Route path="/products">
         {() => <ProtectedRoute component={Products} />}
       </Route>
+      <Route path="/quotes/:id">
+        {() => <ProtectedRoute component={QuoteDetail} />}
+      </Route>
       <Route path="/quotes">
         {() => <ProtectedRoute component={Quotes} />}
+      </Route>
+      <Route path="/invoices/:id">
+        {() => <ProtectedRoute component={InvoiceDetail} />}
       </Route>
       <Route path="/invoices">
         {() => <ProtectedRoute component={Invoices} />}

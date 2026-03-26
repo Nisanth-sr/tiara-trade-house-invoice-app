@@ -10,7 +10,22 @@ import type {
   Expense, InsertExpense,
   Settings, InsertSettings
 } from "@shared/schema";
+
 import { useToast } from "@/hooks/use-toast";
+
+/** GET /api/invoices/:id — invoice, line items, customer, amounts, and company settings */
+export type InvoiceDetailPayload = InvoiceWithItems & {
+  paidAmount: number;
+  dueAmount: number;
+  customer: Customer;
+  settings: Settings;
+};
+
+/** GET /api/quotes/:id — quote, line items, customer, and company settings */
+export type QuoteDetailPayload = QuoteWithItems & {
+  customer: Customer;
+  settings: Settings;
+};
 
 export type InvoiceWithDue = InvoiceWithItems & { paidAmount: number, dueAmount: number };
 export type InvoiceListWithDue = Invoice & { customer: Customer, paidAmount: number, dueAmount: number };
@@ -89,9 +104,25 @@ export function useCreateQuote() {
   });
 }
 
+export function useQuote(id: number | null) {
+  return useQuery({
+    queryKey: [api.quotes.get.path, id],
+    queryFn: () => fetcher<QuoteDetailPayload>(buildUrl(api.quotes.get.path, { id: id! })),
+    enabled: id != null && Number.isFinite(id) && id > 0,
+  });
+}
+
 // Invoices
 export function useInvoices() {
   return useQuery({ queryKey: [api.invoices.list.path], queryFn: () => fetcher<InvoiceListWithDue[]>(api.invoices.list.path) });
+}
+
+export function useInvoice(id: number | null) {
+  return useQuery({
+    queryKey: [api.invoices.get.path, id],
+    queryFn: () => fetcher<InvoiceDetailPayload>(buildUrl(api.invoices.get.path, { id: id! })),
+    enabled: id != null && Number.isFinite(id) && id > 0,
+  });
 }
 export function useCreateInvoice() {
   const qc = useQueryClient();
