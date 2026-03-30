@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useRoute, Link, useSearch } from "wouter";
 import { Layout } from "@/components/layout";
-import { useInvoice } from "@/hooks/use-api";
+import { useInvoice, useProducts } from "@/hooks/use-api";
 import { InvoiceDocument } from "@/components/invoice-document";
 import { downloadPrintablePdf } from "@/lib/invoice-pdf";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,7 @@ export default function InvoiceDetail() {
             invoice={invoiceBody(data)}
             customer={data.customer}
             settings={data.settings}
+            products={products}
           />
         ) : null}
       </div>

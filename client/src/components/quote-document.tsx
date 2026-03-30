@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import logo from "@assets/tth-logo_1773213573131.png";
-import type { Customer, QuoteWithItems, Settings } from "@shared/schema";
+import type { Customer, Product, QuoteItem, QuoteWithItems, Settings } from "@shared/schema";
 
 export type QuoteDocumentData = QuoteWithItems;
 
@@ -9,14 +9,52 @@ type QuoteDocumentProps = {
   customer?: Customer | null;
   /** Company profile; may be missing if API omits it — use optional chaining internally */
   settings?: Partial<Settings> | null;
+  /** Used to show product name (and catalog description fallback) on line items */
+  products?: Product[] | null;
 };
+
+function lineItemText(item: QuoteItem, products?: Product[] | null) {
+  const prod = products?.find((p) => p.id === item.productId);
+  const lineDesc = item.description?.trim() || "";
+  const productName = prod?.name?.trim() || "";
+  const catalogDesc = prod?.description?.trim() || "";
+
+  if (productName && lineDesc) {
+    return (
+      <>
+        <span className="font-semibold text-black [color:rgb(0,0,0)]">{productName}</span>
+        <br />
+        <span className="text-neutral-900 [color:rgb(23,23,23)]">{lineDesc}</span>
+      </>
+    );
+  }
+  if (productName && catalogDesc) {
+    return (
+      <>
+        <span className="font-semibold text-black [color:rgb(0,0,0)]">{productName}</span>
+        <br />
+        <span className="text-neutral-900 [color:rgb(23,23,23)]">{catalogDesc}</span>
+      </>
+    );
+  }
+  if (productName) {
+    return <span className="font-semibold text-black [color:rgb(0,0,0)]">{productName}</span>;
+  }
+  if (lineDesc) {
+    return <span className="text-neutral-900 [color:rgb(23,23,23)]">{lineDesc}</span>;
+  }
+  if (catalogDesc) {
+    return <span className="text-neutral-900 [color:rgb(23,23,23)]">{catalogDesc}</span>;
+  }
+  return <span className="text-neutral-900 [color:rgb(23,23,23)]">—</span>;
+}
 
 function formatMoney(n: number, currency: string) {
   return `${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
 export const QuoteDocument = forwardRef<HTMLDivElement, QuoteDocumentProps>(
-  function QuoteDocument({ quote, customer, settings }, ref) {
+  function QuoteDocument({ quote, customer, settings, products }, ref) {
     const currency = settings?.defaultCurrency || "AED";
     const companyName = settings?.companyName || "TIARA TRADE HOUSE FZ LLC";
 
@@ -91,7 +129,7 @@ export const QuoteDocument = forwardRef<HTMLDivElement, QuoteDocumentProps>(
               return (
                 <tr key={item.id ?? idx} className="border-b border-neutral-200">
                   <td className="py-2 px-2 align-top">{idx + 1}</td>
-                  <td className="py-2 px-2 align-top">{item.description || "—"}</td>
+                  <td className="py-2 px-2 align-top text-left">{lineItemText(item, products)}</td>
                   <td className="py-2 px-2 text-right align-top">{item.qty}</td>
                   <td className="py-2 px-2 text-right align-top">
                     {formatMoney(Number(item.unitPrice), currency)}

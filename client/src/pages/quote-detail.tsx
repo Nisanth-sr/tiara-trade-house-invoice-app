@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { useRoute, Link, useSearch } from "wouter";
 import { Layout } from "@/components/layout";
-import { useQuote, useSettings, useCustomers, type QuoteDetailPayload } from "@/hooks/use-api";
+import { useQuote, useSettings, useCustomers, useProducts, type QuoteDetailPayload } from "@/hooks/use-api";
 import { QuoteDocument, type QuoteDocumentData } from "@/components/quote-document";
 import { downloadPrintablePdf } from "@/lib/invoice-pdf";
 import { Button } from "@/components/ui/button";
@@ -103,6 +103,7 @@ export default function QuoteDetail() {
               undefined
             }
             settings={data.settings ?? appSettings ?? undefined}
+            products={products}
           />
         ) : null}
       </div>

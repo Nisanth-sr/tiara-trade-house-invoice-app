@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import logo from "@assets/tth-logo_1773213573131.png";
-import type { Customer, InvoiceWithItems, Settings } from "@shared/schema";
+import type { Customer, InvoiceItem, InvoiceWithItems, Product, Settings } from "@shared/schema";
 
 export type InvoiceDocumentData = InvoiceWithItems & {
   paidAmount: number;
@@ -11,14 +11,51 @@ type InvoiceDocumentProps = {
   invoice: InvoiceDocumentData;
   customer: Customer;
   settings: Settings;
+  products?: Product[] | null;
 };
+
+function lineItemText(item: InvoiceItem, products?: Product[] | null) {
+  const prod = products?.find((p) => p.id === item.productId);
+  const lineDesc = item.description?.trim() || "";
+  const productName = prod?.name?.trim() || "";
+  const catalogDesc = prod?.description?.trim() || "";
+
+  if (productName && lineDesc) {
+    return (
+      <>
+        <span className="font-semibold text-black [color:rgb(0,0,0)]">{productName}</span>
+        <br />
+        <span className="text-neutral-900 [color:rgb(23,23,23)]">{lineDesc}</span>
+      </>
+    );
+  }
+  if (productName && catalogDesc) {
+    return (
+      <>
+        <span className="font-semibold text-black [color:rgb(0,0,0)]">{productName}</span>
+        <br />
+        <span className="text-neutral-900 [color:rgb(23,23,23)]">{catalogDesc}</span>
+      </>
+    );
+  }
+  if (productName) {
+    return <span className="font-semibold text-black [color:rgb(0,0,0)]">{productName}</span>;
+  }
+  if (lineDesc) {
+    return <span className="text-neutral-900 [color:rgb(23,23,23)]">{lineDesc}</span>;
+  }
+  if (catalogDesc) {
+    return <span className="text-neutral-900 [color:rgb(23,23,23)]">{catalogDesc}</span>;
+  }
+  return <span className="text-neutral-900 [color:rgb(23,23,23)]">—</span>;
+}
 
 function formatMoney(n: number, currency: string) {
   return `${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
 export const InvoiceDocument = forwardRef<HTMLDivElement, InvoiceDocumentProps>(
-  function InvoiceDocument({ invoice, customer, settings }, ref) {
+  function InvoiceDocument({ invoice, customer, settings, products }, ref) {
     const currency = settings.defaultCurrency || "AED";
     const companyName = settings.companyName || "TIARA TRADE HOUSE FZ LLC";
 
@@ -95,7 +132,7 @@ export const InvoiceDocument = forwardRef<HTMLDivElement, InvoiceDocumentProps>(
               return (
                 <tr key={item.id ?? idx} className="border-b border-neutral-200">
                   <td className="py-2 px-2 align-top">{idx + 1}</td>
-                  <td className="py-2 px-2 align-top">{item.description || "—"}</td>
+                  <td className="py-2 px-2 align-top text-left">{lineItemText(item, products)}</td>
                   <td className="py-2 px-2 text-right align-top">{item.qty}</td>
                   <td className="py-2 px-2 text-right align-top">
                     {formatMoney(Number(item.unitPrice), currency)}
