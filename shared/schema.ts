@@ -27,6 +27,8 @@ export const insertCustomerSchema = z.object({
   country: z.string().nullable().optional(),
   currency: z.string().default("AED").nullable().optional(),
   paymentTerms: z.string().default("Net 30").nullable().optional(),
+  /** Customer TRN / VAT / tax registration number (shown on quotes & invoices) */
+  taxNumber: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   status: z.string().default("active").nullable().optional(),
 });
@@ -43,7 +45,10 @@ export const insertProductSchema = z.object({
   sku: z.string(),
   category: z.string(),
   description: z.string().nullable().optional(),
-  unit: z.string(), // Pcs, Ltr, Kg, Box, Set
+  unit: z.string(), // Standard codes: see shared/product-units.ts (e.g. EA, PC, L, KG)
+  /** Cost / purchase from dealer (used for profit; not shown on customer documents as line default) */
+  dealerPrice: z.union([z.string(), z.number()]).default("0"),
+  /** Customer selling price (used on quotes & invoices when picking this product) */
   price: z.string().or(z.number()),
   taxRate: z.string().or(z.number()).default('5'),
   stock: z.number().default(0),

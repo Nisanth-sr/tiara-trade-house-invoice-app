@@ -59,6 +59,9 @@ export const InvoiceDocument = forwardRef<HTMLDivElement, InvoiceDocumentProps>(
             <p>{customer.name}</p>
             {customer.address ? <p className="mt-1 whitespace-pre-line">{customer.address}</p> : null}
             {customer.country ? <p>{customer.country}</p> : null}
+            {customer.taxNumber ? (
+              <p className="mt-1 font-medium">TRN / VAT: {customer.taxNumber}</p>
+            ) : null}
             {customer.email ? <p className="mt-1">{customer.email}</p> : null}
             {customer.phone ? <p>{customer.phone}</p> : null}
           </div>

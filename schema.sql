@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS customers (
     country TEXT,
     currency TEXT DEFAULT 'AED',
     payment_terms TEXT DEFAULT 'Net 30',
+    tax_number TEXT,
     notes TEXT,
     status TEXT DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS products (
     category TEXT NOT NULL,
     description TEXT,
     unit TEXT NOT NULL,
+    dealer_price NUMERIC(12, 2) NOT NULL DEFAULT 0,
     price NUMERIC(12, 2) NOT NULL,
     tax_rate NUMERIC(5, 2) DEFAULT 5.00,
     stock INTEGER DEFAULT 0,

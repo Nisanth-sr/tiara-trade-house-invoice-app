@@ -302,9 +302,9 @@ async function seedDatabase() {
 
     const productsCount = await storage.getProducts();
     if (productsCount.length === 0) {
-      await storage.createProduct({ name: "Synthetic Engine Oil 5W-40", sku: "LUB-001", category: "Lubricants & Engine Oils", unit: "Ltr", price: "45.00", taxRate: "5", status: "active", description: "High performance synthetic oil", stock: 50 });
-      await storage.createProduct({ name: "Brake Pads - Toyota Camry", sku: "BRK-015", category: "Auto Spare Parts", unit: "Set", price: "120.00", taxRate: "5", status: "active", description: "Ceramic brake pads", stock: 30 });
-      await storage.createProduct({ name: "Heavy Duty Degreaser", sku: "CLN-102", category: "Car Care Products", unit: "Pcs", price: "25.00", taxRate: "5", status: "active", description: "Industrial degreaser spray", stock: 100 });
+      await storage.createProduct({ name: "Synthetic Engine Oil 5W-40", sku: "LUB-001", category: "Lubricants & Engine Oils", unit: "L", dealerPrice: "32.00", price: "45.00", taxRate: "5", status: "active", description: "High performance synthetic oil", stock: 50 });
+      await storage.createProduct({ name: "Brake Pads - Toyota Camry", sku: "BRK-015", category: "Auto Spare Parts", unit: "ST", dealerPrice: "85.00", price: "120.00", taxRate: "5", status: "active", description: "Ceramic brake pads", stock: 30 });
+      await storage.createProduct({ name: "Heavy Duty Degreaser", sku: "CLN-102", category: "Car Care Products", unit: "PC", dealerPrice: "15.50", price: "25.00", taxRate: "5", status: "active", description: "Industrial degreaser spray", stock: 100 });
     }
 
     const expensesCount = await storage.getExpenses();

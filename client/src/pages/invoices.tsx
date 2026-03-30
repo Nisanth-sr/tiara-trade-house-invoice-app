@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { useInvoices, useCreateInvoice, useCustomers, useProducts, useQuotes } from "@/hooks/use-api";
+import { useInvoices, useCreateInvoice, useCustomers, useProducts, useQuotes, useQuote } from "@/hooks/use-api";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Plus, Search, Eye } from "lucide-react";
 import { Link } from "wouter";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
@@ -93,7 +93,7 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
   const { data: quotes = [] } = useQuotes();
   const createInvoice = useCreateInvoice();
   const { toast } = useToast();
-  
+
   const form = useForm({
     defaultValues: {
       invoiceNumber: `INV-${format(new Date(), 'yyyyMMdd')}-${Math.floor(Math.random() * 1000)}`,
@@ -107,35 +107,37 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
     }
   });
 
-  const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" });
+  const quoteIdWatch = useWatch({ control: form.control, name: "quoteId" });
+  const quoteIdParsed = quoteIdWatch ? parseInt(quoteIdWatch, 10) : NaN;
+  const { data: quoteDetail } = useQuote(
+    Number.isFinite(quoteIdParsed) && quoteIdParsed > 0 ? quoteIdParsed : null
+  );
 
-  // Auto-fill form when quote is selected
+  const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "items" });
+
+  // Auto-fill from full quote (list API has no line items; stale `fields` in a remove loop froze the tab)
   useEffect(() => {
-    const quoteId = form.watch("quoteId");
-    if (quoteId) {
-      const selectedQuote = quotes.find(q => q.id.toString() === quoteId);
-      if (selectedQuote) {
-        // Set customer from quote
-        form.setValue("customerId", selectedQuote.customerId.toString());
-        form.setValue("notes", selectedQuote.notes || "");
-        
-        // Clear existing items and add quote items
-        while (fields.length > 0) {
-          remove(0);
-        }
-        
-        selectedQuote.items.forEach((item) => {
-          append({
-            productId: item.productId.toString(),
-            description: item.description || "",
-            qty: item.qty,
-            unitPrice: parseFloat(item.unitPrice),
-            taxRate: parseFloat(item.taxRate || "5")
-          });
-        });
-      }
-    }
-  }, [form.watch("quoteId"), quotes, form, fields.length, append, remove]);
+    if (!quoteIdWatch) return;
+    if (!Number.isFinite(quoteIdParsed) || quoteIdParsed <= 0) return;
+    if (!quoteDetail || quoteDetail.id !== quoteIdParsed) return;
+
+    form.setValue("customerId", String(quoteDetail.customerId));
+    form.setValue("notes", quoteDetail.notes || "");
+
+    const rows = (quoteDetail.items ?? []).map((item) => ({
+      productId: String(item.productId),
+      description: item.description || "",
+      qty: item.qty,
+      unitPrice: parseFloat(String(item.unitPrice)),
+      taxRate: parseFloat(String(item.taxRate || "5")),
+    }));
+
+    replace(
+      rows.length > 0
+        ? rows
+        : [{ productId: "", description: "", qty: 1, unitPrice: 0, taxRate: 5 }]
+    );
+  }, [quoteIdWatch, quoteIdParsed, quoteDetail, form, replace]);
 
   const onSubmit = (data: any) => {
     try {
@@ -262,7 +264,7 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
             <div className="mt-8 border-t pt-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-lg">Line Items</h3>
-                <Button type="button" variant="outline" size="sm" onClick={() => append({ description: "", qty: 1, unitPrice: 0, taxRate: 5 })}>
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: "", description: "", qty: 1, unitPrice: 0, taxRate: 5 })}>
                   <Plus className="w-4 h-4 mr-2" /> Add Item
                 </Button>
               </div>
@@ -280,7 +282,7 @@ function InvoiceSheet({ open, setOpen }: { open: boolean, setOpen: (val: boolean
                           f.onChange(val);
                           const prod = products.find(p => p.id.toString() === val);
                           if (prod) {
-                            form.setValue(`items.${index}.unitPrice`, parseFloat(prod.price));
+                            form.setValue(`items.${index}.unitPrice`, parseFloat(String(prod.price)));
                           }
                         }} defaultValue={f.value}>
                           <FormControl>

@@ -99,7 +99,7 @@ function CustomerDialog({ open, setOpen, editId, onEditIdChange }: { open: boole
   
   const form = useForm<z.infer<typeof insertCustomerSchema>>({
     resolver: zodResolver(insertCustomerSchema),
-    defaultValues: { name: "", company: "", email: "", phone: "", country: "", currency: "AED", status: "active", address: "", whatsapp: "", paymentTerms: "Net 30", notes: "" }
+    defaultValues: { name: "", company: "", email: "", phone: "", country: "", currency: "AED", status: "active", address: "", whatsapp: "", paymentTerms: "Net 30", taxNumber: "", notes: "" }
   });
 
   // Update form when editing customer changes
@@ -116,6 +116,7 @@ function CustomerDialog({ open, setOpen, editId, onEditIdChange }: { open: boole
         address: editingCustomer.address || "",
         whatsapp: editingCustomer.whatsapp || "",
         paymentTerms: editingCustomer.paymentTerms || "Net 30",
+        taxNumber: editingCustomer.taxNumber || "",
         notes: editingCustomer.notes || ""
       });
     } else if (open && !editingCustomer) {
@@ -175,6 +176,9 @@ function CustomerDialog({ open, setOpen, editId, onEditIdChange }: { open: boole
                 <FormItem><FormLabel>Currency</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
               )} />
             </div>
+            <FormField control={form.control} name="taxNumber" render={({ field }) => (
+              <FormItem><FormLabel>Tax number (TRN / VAT)</FormLabel><FormControl><Input {...field} value={field.value || ''} placeholder="e.g. 100123456700003" /></FormControl></FormItem>
+            )} />
             <FormField control={form.control} name="whatsapp" render={({ field }) => (
               <FormItem><FormLabel>WhatsApp Number</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl></FormItem>
             )} />

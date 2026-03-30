@@ -10,6 +10,43 @@ import {
   type Settings, type InsertSettings
 } from "@shared/schema";
 
+/** Normalize Supabase customer row (snake_case) to shared Customer type */
+function mapProductRow(row: Record<string, unknown>): Product {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    sku: row.sku as string,
+    category: row.category as string,
+    description: (row.description as string | null | undefined) ?? null,
+    unit: row.unit as string,
+    dealerPrice: row.dealer_price ?? row.dealerPrice ?? 0,
+    price: row.price as string | number,
+    taxRate: (row.tax_rate ?? row.taxRate ?? "5") as string | number,
+    stock: Number(row.stock ?? 0),
+    status: (row.status as string | null | undefined) ?? "active",
+    createdAt: (row.created_at ?? row.createdAt) as string | Date | null,
+  };
+}
+
+function mapCustomerRow(row: Record<string, unknown>): Customer {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    company: row.company as string,
+    email: (row.email as string | null | undefined) ?? null,
+    phone: (row.phone as string | null | undefined) ?? null,
+    whatsapp: (row.whatsapp as string | null | undefined) ?? null,
+    address: (row.address as string | null | undefined) ?? null,
+    country: (row.country as string | null | undefined) ?? null,
+    currency: (row.currency as string | null | undefined) ?? "AED",
+    paymentTerms: (row.payment_terms as string | undefined) ?? (row.paymentTerms as string | undefined) ?? "Net 30",
+    taxNumber: (row.tax_number as string | null | undefined) ?? (row.taxNumber as string | null | undefined) ?? null,
+    notes: (row.notes as string | null | undefined) ?? null,
+    status: (row.status as string | null | undefined) ?? "active",
+    createdAt: (row.created_at as string) ?? (row.createdAt as string) ?? null,
+  };
+}
+
 export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
@@ -29,6 +66,7 @@ export interface IStorage {
   getProducts(): Promise<Product[]>;
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, updates: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: number): Promise<void>;
 
   // Quotes
   getQuote(id: number): Promise<(Quote & { items: QuoteItem[]; customer: Customer }) | undefined>;
@@ -88,12 +126,12 @@ export class DatabaseStorage implements IStorage {
 
   async getCustomer(id: number): Promise<Customer | undefined> {
     const { data: customer } = await supabase.from('customers').select('*').eq('id', id).single();
-    return customer || undefined;
+    return customer ? mapCustomerRow(customer as Record<string, unknown>) : undefined;
   }
   
   async getCustomers(): Promise<Customer[]> {
     const { data: customers = [] } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-    return customers || [];
+    return (customers || []).map((c) => mapCustomerRow(c as Record<string, unknown>));
   }
   
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
@@ -107,16 +145,13 @@ export class DatabaseStorage implements IStorage {
         country: customer.country,
         currency: customer.currency,
         payment_terms: customer.paymentTerms,
+        tax_number: customer.taxNumber?.trim() || null,
         notes: customer.notes,
         status: customer.status
     };
     const { data: newCustomer, error } = await supabase.from('customers').insert(payload).select().single();
     if (error) throw error;
-    return {
-        ...newCustomer,
-        paymentTerms: newCustomer.payment_terms,
-        createdAt: newCustomer.created_at
-    };
+    return mapCustomerRow(newCustomer as Record<string, unknown>);
   }
   
   async updateCustomer(id: number, updates: Partial<InsertCustomer>): Promise<Customer | undefined> {
@@ -130,35 +165,35 @@ export class DatabaseStorage implements IStorage {
     if (updates.country !== undefined) payload.country = updates.country;
     if (updates.currency !== undefined) payload.currency = updates.currency;
     if (updates.paymentTerms !== undefined) payload.payment_terms = updates.paymentTerms;
+    if (updates.taxNumber !== undefined) payload.tax_number = updates.taxNumber?.trim() || null;
     if (updates.notes !== undefined) payload.notes = updates.notes;
     if (updates.status !== undefined) payload.status = updates.status;
     const { data: updated, error } = await supabase.from('customers').update(payload).eq('id', id).select().single();
     if (error && error.code !== 'PGRST116') throw error;
     if (!updated) return undefined;
-    return {
-        ...updated,
-        paymentTerms: updated.payment_terms,
-        createdAt: updated.created_at
-    };
+    return mapCustomerRow(updated as Record<string, unknown>);
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
     const { data: product } = await supabase.from('products').select('*').eq('id', id).single();
-    return product || undefined;
+    return product ? mapProductRow(product as Record<string, unknown>) : undefined;
   }
   
   async getProducts(): Promise<Product[]> {
     const { data: products = [] } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    return products || [];
+    return (products || []).map((p) => mapProductRow(p as Record<string, unknown>));
   }
   
   async createProduct(product: InsertProduct): Promise<Product> {
+    const dealer = product.dealerPrice;
+    const dealerNum = dealer === "" || dealer === undefined ? 0 : Number(dealer);
     const payload = {
         name: product.name,
         sku: product.sku,
         category: product.category,
         description: product.description,
         unit: product.unit,
+        dealer_price: Number.isFinite(dealerNum) ? dealerNum : 0,
         price: product.price,
         tax_rate: product.taxRate,
         stock: product.stock,
@@ -166,11 +201,7 @@ export class DatabaseStorage implements IStorage {
     };
     const { data: newProduct, error } = await supabase.from('products').insert(payload).select().single();
     if (error) throw error;
-    return {
-        ...newProduct,
-        taxRate: newProduct.tax_rate,
-        createdAt: newProduct.created_at
-    };
+    return mapProductRow(newProduct as Record<string, unknown>);
   }
   
   async updateProduct(id: number, updates: Partial<InsertProduct>): Promise<Product | undefined> {
@@ -180,6 +211,11 @@ export class DatabaseStorage implements IStorage {
     if (updates.category !== undefined) payload.category = updates.category;
     if (updates.description !== undefined) payload.description = updates.description;
     if (updates.unit !== undefined) payload.unit = updates.unit;
+    if (updates.dealerPrice !== undefined) {
+      const d = updates.dealerPrice;
+      const dealerNum = d === "" || d === undefined ? 0 : Number(d);
+      payload.dealer_price = Number.isFinite(dealerNum) ? dealerNum : 0;
+    }
     if (updates.price !== undefined) payload.price = updates.price;
     if (updates.taxRate !== undefined) payload.tax_rate = updates.taxRate;
     if (updates.stock !== undefined) payload.stock = updates.stock;
@@ -187,11 +223,7 @@ export class DatabaseStorage implements IStorage {
     const { data: updated, error } = await supabase.from('products').update(payload).eq('id', id).select().single();
     if (error && error.code !== 'PGRST116') throw error;
     if (!updated) return undefined;
-    return {
-        ...updated,
-        taxRate: updated.tax_rate,
-        createdAt: updated.created_at
-    };
+    return mapProductRow(updated as Record<string, unknown>);
   }
 
   async getQuote(id: number): Promise<(Quote & { items: QuoteItem[]; customer: Customer }) | undefined> {
@@ -201,11 +233,7 @@ export class DatabaseStorage implements IStorage {
     const rawCustomer = row.customers as Record<string, unknown> | null | undefined;
     let customer: Customer | undefined;
     if (rawCustomer && typeof rawCustomer === "object" && "id" in rawCustomer) {
-      customer = {
-        ...rawCustomer,
-        paymentTerms: (rawCustomer.payment_terms as string) ?? (rawCustomer.paymentTerms as string),
-        createdAt: (rawCustomer.created_at as string) ?? (rawCustomer.createdAt as string),
-      } as Customer;
+      customer = mapCustomerRow(rawCustomer);
     } else {
       customer = await this.getCustomer(row.customer_id);
     }
@@ -241,7 +269,7 @@ export class DatabaseStorage implements IStorage {
   async getQuotes(): Promise<(Quote & { customer: Customer })[]> {
     const { data: quotes = [] } = await supabase.from('quotes').select('*, customers(*)').order('created_at', { ascending: false });
     
-    return (quotes || []).map((q: any) => {
+    return Promise.all((quotes || []).map(async (q: any) => {
         const mappedQuote = {
             ...q,
             quoteNumber: q.quote_number,
@@ -252,13 +280,18 @@ export class DatabaseStorage implements IStorage {
             grandTotal: q.grand_total,
             createdAt: q.created_at
         };
-        const customer = q.customers;
+        const customer = q.customers
+          ? mapCustomerRow(q.customers as Record<string, unknown>)
+          : await this.getCustomer(q.customer_id);
+        if (!customer) {
+          throw new Error(`Customer not found for quote ${q.id}`);
+        }
         delete mappedQuote.customers;
         return {
             ...mappedQuote,
             customer
         };
-    });
+    }));
   }
   
   async createQuote(quote: InsertQuote, items: InsertQuoteItem[]): Promise<Quote & { items: QuoteItem[] }> {
@@ -360,11 +393,7 @@ export class DatabaseStorage implements IStorage {
     const rawCustomer = row.customers as Record<string, unknown> | null | undefined;
     let customer: Customer | undefined;
     if (rawCustomer && typeof rawCustomer === "object" && "id" in rawCustomer) {
-      customer = {
-        ...rawCustomer,
-        paymentTerms: (rawCustomer.payment_terms as string) ?? (rawCustomer.paymentTerms as string),
-        createdAt: (rawCustomer.created_at as string) ?? (rawCustomer.createdAt as string),
-      } as Customer;
+      customer = mapCustomerRow(rawCustomer);
     } else {
       customer = await this.getCustomer(row.customer_id);
     }
@@ -405,7 +434,7 @@ export class DatabaseStorage implements IStorage {
   async getInvoices(): Promise<(Invoice & { customer: Customer, paidAmount: number, dueAmount: number })[]> {
     const { data: invoices = [] } = await supabase.from('invoices').select('*, customers(*), payments(amount)').order('created_at', { ascending: false });
 
-    return (invoices || []).map((i: any) => {
+    return Promise.all((invoices || []).map(async (i: any) => {
       const invoicePayments = i.payments || [];
       const paidAmount = invoicePayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount), 0);
       const dueAmount = parseFloat(i.grand_total) - paidAmount;
@@ -422,7 +451,12 @@ export class DatabaseStorage implements IStorage {
         createdAt: i.created_at
       };
       
-      const customer = i.customers;
+      const customer = i.customers
+        ? mapCustomerRow(i.customers as Record<string, unknown>)
+        : await this.getCustomer(i.customer_id);
+      if (!customer) {
+        throw new Error(`Customer not found for invoice ${i.id}`);
+      }
       delete mappedInvoice.customers;
       delete mappedInvoice.payments;
 
@@ -432,7 +466,7 @@ export class DatabaseStorage implements IStorage {
         paidAmount,
         dueAmount: Math.max(0, dueAmount)
       };
-    });
+    }));
   }
   
   async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice & { items: InvoiceItem[] }> {
@@ -550,7 +584,7 @@ export class DatabaseStorage implements IStorage {
   async getPayments(): Promise<(Payment & { invoice: Invoice, customer: Customer })[]> {
     const { data: payments = [] } = await supabase.from('payments').select('*, invoices(*), customers(*)').order('created_at', { ascending: false });
     
-    return (payments || []).map((p: any) => {
+    return Promise.all((payments || []).map(async (p: any) => {
         const mappedPayment = {
             ...p,
             invoiceId: p.invoice_id,
@@ -568,7 +602,12 @@ export class DatabaseStorage implements IStorage {
             grandTotal: p.invoices.grand_total,
             createdAt: p.invoices.created_at
         };
-        const customer = p.customers;
+        const customer = p.customers
+          ? mapCustomerRow(p.customers as Record<string, unknown>)
+          : await this.getCustomer(p.customer_id);
+        if (!customer) {
+          throw new Error(`Customer not found for payment ${p.id}`);
+        }
         delete mappedPayment.invoices;
         delete mappedPayment.customers;
         
@@ -577,7 +616,7 @@ export class DatabaseStorage implements IStorage {
             invoice,
             customer
         };
-    });
+    }));
   }
   
   async createPayment(payment: InsertPayment): Promise<Payment> {
