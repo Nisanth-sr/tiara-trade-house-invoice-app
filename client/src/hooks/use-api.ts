@@ -4,7 +4,7 @@ import type {
   Customer, InsertCustomer, 
   Product, InsertProduct, 
   User, InsertUser,
-  QuoteWithItems, InsertQuote,
+  QuoteWithItems, InsertQuote, Quote,
   Invoice, InvoiceWithItems, InsertInvoice,
   Payment, InsertPayment,
   Expense, InsertExpense,
@@ -38,6 +38,14 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error(error.message || "An error occurred");
   }
   return res.json();
+}
+
+async function fetcherVoid(url: string, options?: RequestInit): Promise<void> {
+  const res = await fetch(url, { ...options, credentials: "include" });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: res.statusText }));
+    throw new Error(error.message || "An error occurred");
+  }
 }
 
 // Customers
@@ -85,6 +93,15 @@ export function useUpdateProduct() {
     onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
   });
 }
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: number) => fetcherVoid(buildUrl(api.products.delete.path, { id }), { method: "DELETE" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [api.products.list.path] }); toast({ title: "Product deleted" }); },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" })
+  });
+}
 
 // Quotes
 export function useQuotes() {
@@ -112,6 +129,40 @@ export function useQuote(id: number | null) {
   });
 }
 
+export function useUpdateQuote() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      fetcher<Quote>(buildUrl(api.quotes.update.path, { id }), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: [api.quotes.list.path] });
+      qc.invalidateQueries({ queryKey: [api.quotes.get.path, id] });
+      qc.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({ title: "Quote updated" });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+}
+
+export function useDeleteQuote() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: number) => fetcherVoid(buildUrl(api.quotes.delete.path, { id }), { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [api.quotes.list.path] });
+      qc.invalidateQueries({ queryKey: [api.products.list.path] });
+      toast({ title: "Quote deleted" });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+}
+
 // Invoices
 export function useInvoices() {
   return useQuery({ queryKey: [api.invoices.list.path], queryFn: () => fetcher<InvoiceListWithDue[]>(api.invoices.list.path) });
@@ -135,6 +186,42 @@ export function useCreateInvoice() {
       toast({ title: "Invoice created" }); 
     },
     onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
+  });
+}
+
+export function useUpdateInvoice() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+      fetcher<Invoice>(buildUrl(api.invoices.update.path, { id }), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_d, { id }) => {
+      qc.invalidateQueries({ queryKey: [api.invoices.list.path] });
+      qc.invalidateQueries({ queryKey: [api.invoices.get.path, id] });
+      qc.invalidateQueries({ queryKey: [api.products.list.path] });
+      qc.invalidateQueries({ queryKey: [api.payments.list.path] });
+      toast({ title: "Invoice updated" });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+}
+
+export function useDeleteInvoice() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: (id: number) => fetcherVoid(buildUrl(api.invoices.delete.path, { id }), { method: "DELETE" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [api.invoices.list.path] });
+      qc.invalidateQueries({ queryKey: [api.products.list.path] });
+      qc.invalidateQueries({ queryKey: [api.payments.list.path] });
+      toast({ title: "Invoice deleted" });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 }
 

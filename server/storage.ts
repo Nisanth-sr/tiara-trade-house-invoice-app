@@ -47,6 +47,13 @@ function mapCustomerRow(row: Record<string, unknown>): Customer {
   };
 }
 
+async function adjustProductStock(productId: number, delta: number): Promise<void> {
+  const { data: row } = await supabase.from("products").select("stock").eq("id", productId).single();
+  if (!row) return;
+  const next = Math.max(0, (Number((row as { stock?: number }).stock) || 0) + delta);
+  await supabase.from("products").update({ stock: next }).eq("id", productId);
+}
+
 export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
@@ -72,13 +79,14 @@ export interface IStorage {
   getQuote(id: number): Promise<(Quote & { items: QuoteItem[]; customer: Customer }) | undefined>;
   getQuotes(): Promise<(Quote & { customer: Customer })[]>;
   createQuote(quote: InsertQuote, items: InsertQuoteItem[]): Promise<Quote & { items: QuoteItem[] }>;
-  updateQuote(id: number, updates: Partial<InsertQuote>): Promise<Quote | undefined>;
+  updateQuote(id: number, updates: Partial<InsertQuote>, items?: InsertQuoteItem[]): Promise<Quote | undefined>;
+  deleteQuote(id: number): Promise<void>;
 
   // Invoices
   getInvoice(id: number): Promise<(Invoice & { items: InvoiceItem[], paidAmount: number, dueAmount: number, customer: Customer }) | undefined>;
   getInvoices(): Promise<(Invoice & { customer: Customer, paidAmount: number, dueAmount: number })[]>;
   createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice & { items: InvoiceItem[] }>;
-  updateInvoice(id: number, updates: Partial<InsertInvoice>): Promise<Invoice | undefined>;
+  updateInvoice(id: number, updates: Partial<InsertInvoice>, items?: InsertInvoiceItem[]): Promise<Invoice | undefined>;
   deleteInvoice(id: number): Promise<void>;
 
   // Payments
@@ -226,6 +234,19 @@ export class DatabaseStorage implements IStorage {
     return mapProductRow(updated as Record<string, unknown>);
   }
 
+  async deleteProduct(id: number): Promise<void> {
+    const { data: inQuotes } = await supabase.from("quote_items").select("id").eq("product_id", id).limit(1);
+    if (inQuotes && inQuotes.length > 0) {
+      throw new Error("This product is used on a quote and cannot be deleted.");
+    }
+    const { data: inInvoices } = await supabase.from("invoice_items").select("id").eq("product_id", id).limit(1);
+    if (inInvoices && inInvoices.length > 0) {
+      throw new Error("This product is used on an invoice and cannot be deleted.");
+    }
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) throw error;
+  }
+
   async getQuote(id: number): Promise<(Quote & { items: QuoteItem[]; customer: Customer }) | undefined> {
     const { data: row } = await supabase.from('quotes').select('*, customers(*)').eq('id', id).single();
     if (!row) return undefined;
@@ -357,7 +378,33 @@ export class DatabaseStorage implements IStorage {
     return { ...mappedQuote, items: mappedItems };
   }
   
-  async updateQuote(id: number, updates: Partial<InsertQuote>): Promise<Quote | undefined> {
+  async updateQuote(id: number, updates: Partial<InsertQuote>, items?: InsertQuoteItem[]): Promise<Quote | undefined> {
+    if (items !== undefined) {
+      const existing = await this.getQuote(id);
+      if (!existing) return undefined;
+      for (const old of existing.items) {
+        await adjustProductStock(old.productId, old.qty);
+      }
+      await supabase.from("quote_items").delete().eq("quote_id", id);
+      if (items.length > 0) {
+        const itemsPayload = items.map((item) => ({
+          quote_id: id,
+          product_id: item.productId,
+          description: item.description,
+          qty: item.qty,
+          unit_price: item.unitPrice,
+          tax_rate: item.taxRate,
+          discount: item.discount ?? 0,
+          line_total: item.lineTotal
+        }));
+        const { error: insErr } = await supabase.from("quote_items").insert(itemsPayload);
+        if (insErr) throw insErr;
+        for (const item of items) {
+          await adjustProductStock(item.productId, -item.qty);
+        }
+      }
+    }
+
     const updatePayload: any = {};
     if (updates.quoteNumber !== undefined) updatePayload.quote_number = updates.quoteNumber;
     if (updates.customerId !== undefined) updatePayload.customer_id = updates.customerId;
@@ -384,6 +431,16 @@ export class DatabaseStorage implements IStorage {
         grandTotal: updated.grand_total,
         createdAt: updated.created_at
     };
+  }
+
+  async deleteQuote(id: number): Promise<void> {
+    const existing = await this.getQuote(id);
+    if (!existing) return;
+    for (const old of existing.items) {
+      await adjustProductStock(old.productId, old.qty);
+    }
+    const { error } = await supabase.from("quotes").delete().eq("id", id);
+    if (error) throw error;
   }
 
   async getInvoice(id: number): Promise<(Invoice & { items: InvoiceItem[], paidAmount: number, dueAmount: number, customer: Customer }) | undefined> {
@@ -538,7 +595,33 @@ export class DatabaseStorage implements IStorage {
     return { ...mappedInvoice, items: mappedItems };
   }
   
-  async updateInvoice(id: number, updates: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+  async updateInvoice(id: number, updates: Partial<InsertInvoice>, items?: InsertInvoiceItem[]): Promise<Invoice | undefined> {
+    if (items !== undefined) {
+      const existing = await this.getInvoice(id);
+      if (!existing) return undefined;
+      for (const old of existing.items) {
+        await adjustProductStock(old.productId, old.qty);
+      }
+      await supabase.from("invoice_items").delete().eq("invoice_id", id);
+      if (items.length > 0) {
+        const itemsPayload = items.map((item) => ({
+          invoice_id: id,
+          product_id: item.productId,
+          description: item.description,
+          qty: item.qty,
+          unit_price: item.unitPrice,
+          tax_rate: item.taxRate,
+          discount: item.discount ?? 0,
+          line_total: item.lineTotal
+        }));
+        const { error: insErr } = await supabase.from("invoice_items").insert(itemsPayload);
+        if (insErr) throw insErr;
+        for (const item of items) {
+          await adjustProductStock(item.productId, -item.qty);
+        }
+      }
+    }
+
     const updatePayload: any = {};
     if (updates.invoiceNumber !== undefined) updatePayload.invoice_number = updates.invoiceNumber;
     if (updates.customerId !== undefined) updatePayload.customer_id = updates.customerId;
@@ -576,9 +659,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteInvoice(id: number): Promise<void> {
-     await supabase.from('invoice_items').delete().eq('invoice_id', id);
-     await supabase.from('payments').delete().eq('invoice_id', id);
-     await supabase.from('invoices').delete().eq('id', id);
+    const inv = await this.getInvoice(id);
+    if (!inv) return;
+    if (inv.paidAmount > 0) {
+      throw new Error("Cannot delete an invoice that has payments recorded against it.");
+    }
+    for (const it of inv.items) {
+      await adjustProductStock(it.productId, it.qty);
+    }
+    await supabase.from('invoice_items').delete().eq('invoice_id', id);
+    await supabase.from('payments').delete().eq('invoice_id', id);
+    await supabase.from('invoices').delete().eq('id', id);
   }
 
   async getPayments(): Promise<(Payment & { invoice: Invoice, customer: Customer })[]> {

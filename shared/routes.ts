@@ -140,6 +140,11 @@ export const api = {
       path: '/api/products/:id' as const,
       input: insertProductSchema.partial(),
       responses: { 200: z.custom<Product>(), 404: errorSchemas.notFound }
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/products/:id' as const,
+      responses: { 204: z.void(), 404: errorSchemas.notFound, 400: errorSchemas.validation }
     }
   },
   quotes: {

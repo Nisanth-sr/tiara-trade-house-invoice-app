@@ -165,6 +165,17 @@ export async function registerRoutes(
       res.status(400).json({ message: e.message });
     }
   });
+  app.delete(api.products.delete.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await storage.getProduct(id);
+      if (!existing) return res.status(404).json({ message: "Not found" });
+      await storage.deleteProduct(id);
+      res.status(204).send();
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
 
   // Quotes
   app.get(api.quotes.list.path, async (req, res) => {
@@ -187,10 +198,26 @@ export async function registerRoutes(
   });
   app.put(api.quotes.update.path, async (req, res) => {
     try {
-      const { items, ...quoteData } = api.quotes.update.input.parse(req.body);
-      const quote = await storage.updateQuote(Number(req.params.id), quoteData);
+      const parsed = api.quotes.update.input.parse(req.body) as Record<string, unknown>;
+      const { items, ...quoteData } = parsed;
+      const quote = await storage.updateQuote(
+        Number(req.params.id),
+        quoteData as any,
+        items !== undefined ? (items as any) : undefined
+      );
       if (!quote) return res.status(404).json({ message: "Not found" });
       res.json(quote);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+  app.delete(api.quotes.delete.path, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await storage.getQuote(id);
+      if (!existing) return res.status(404).json({ message: "Not found" });
+      await storage.deleteQuote(id);
+      res.status(204).send();
     } catch (e: any) {
       res.status(400).json({ message: e.message });
     }
@@ -217,8 +244,13 @@ export async function registerRoutes(
   });
   app.put(api.invoices.update.path, async (req, res) => {
     try {
-      const { items, ...invoiceData } = api.invoices.update.input.parse(req.body);
-      const invoice = await storage.updateInvoice(Number(req.params.id), invoiceData);
+      const parsed = api.invoices.update.input.parse(req.body) as Record<string, unknown>;
+      const { items, ...invoiceData } = parsed;
+      const invoice = await storage.updateInvoice(
+        Number(req.params.id),
+        invoiceData as any,
+        items !== undefined ? (items as any) : undefined
+      );
       if (!invoice) return res.status(404).json({ message: "Not found" });
       res.json(invoice);
     } catch (e: any) {
@@ -226,7 +258,15 @@ export async function registerRoutes(
     }
   });
   app.delete(api.invoices.delete.path, async (req, res) => {
-    res.status(204).send();
+    try {
+      const id = Number(req.params.id);
+      const existing = await storage.getInvoice(id);
+      if (!existing) return res.status(404).json({ message: "Not found" });
+      await storage.deleteInvoice(id);
+      res.status(204).send();
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
   });
 
   // Payments

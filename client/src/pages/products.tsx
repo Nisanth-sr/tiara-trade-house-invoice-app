@@ -1,13 +1,23 @@
 import { useState } from "react";
 import * as React from "react";
 import { Layout } from "@/components/layout";
-import { useProducts, useCreateProduct, useUpdateProduct } from "@/hooks/use-api";
+import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/use-api";
+import type { Product } from "@shared/schema";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,9 +28,11 @@ import * as z from "zod";
 
 export default function Products() {
   const { data: products = [], isLoading } = useProducts();
+  const deleteProduct = useDeleteProduct();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
 
   const filtered = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -76,7 +88,19 @@ export default function Products() {
                     <TableCell className="text-right font-medium">{product.stock || 0}</TableCell>
                     <TableCell><StatusBadge status={product.status!} /></TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10" onClick={() => { setEditId(product.id); setOpen(true); }}>Edit</Button>
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10" onClick={() => { setEditId(product.id); setOpen(true); }}>Edit</Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          title="Delete product"
+                          onClick={() => setPendingDelete(product)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -85,6 +109,37 @@ export default function Products() {
           </Table>
         </div>
       </div>
+
+      <AlertDialog open={pendingDelete !== null} onOpenChange={(o) => { if (!o) setPendingDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete product?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete ? (
+                <>
+                  <span className="font-medium text-foreground">{pendingDelete.name}</span>
+                  {" "}(SKU: {pendingDelete.sku}) will be permanently removed. This cannot be undone.
+                  Products referenced on existing quotes or invoices cannot be deleted.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteProduct.isPending}
+              onClick={() => {
+                if (!pendingDelete) return;
+                deleteProduct.mutate(pendingDelete.id, { onSuccess: () => setPendingDelete(null) });
+              }}
+            >
+              {deleteProduct.isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
