@@ -22,6 +22,7 @@ export default function InvoiceDetail() {
   const search = useSearch();
   const { data, isLoading, isError, error } = useInvoice(Number.isFinite(id) ? id : null);
   usePrintDocumentTitle(data?.invoiceNumber ? `Invoice ${data.invoiceNumber}` : undefined);
+  const { data: products = [] } = useProducts();
   const ref = useRef<HTMLDivElement>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
 

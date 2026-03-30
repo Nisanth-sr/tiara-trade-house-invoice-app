@@ -22,6 +22,7 @@ export default function QuoteDetail() {
   usePrintDocumentTitle(data?.quoteNumber ? `Quotation ${data.quoteNumber}` : undefined);
   const { data: appSettings } = useSettings();
   const { data: customers = [] } = useCustomers();
+  const { data: products = [] } = useProducts();
   const ref = useRef<HTMLDivElement>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
 
